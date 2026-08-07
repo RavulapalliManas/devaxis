@@ -1,5 +1,26 @@
 # devaxis ledger
 
+## 2026-08-08 (midday) — branch matrix LAUNCHED on idle lanes; factorial 39/48 terminal
+
+Factorial: 48 reporting, 39 terminal, 9 still training (max step 75,750/120,000, ~1.5h).
+Comparisons still withheld — cells are not all terminal.
+
+Q2 certified T0 bitwise, so forks are now scientifically interpretable -> launched the
+PRE-REGISTERED branch matrix on the 23 idle cores (`devaxis-branch` unit, 21 runs = 7 baseline
+parents x 3 arms), forking every parent at step 4000: a state that is PRE-emergence for all of
+them (earliest measured emergence 7000) but POST-read (recap saturates ~500).
+
+  noop       p=1.0                          control; must reproduce the parent
+  deprive    p->0 at 4000, permanent        positive control (lag_law p=0: no use supply, no use)
+  rescue10k  p->0 at 4000, p->1 at 14000    the question
+
+Primary endpoint: emergence step, right-censored. Secondary and decisive: emergence delay in
+USE-SUPPLIED steps since rescue — the age-matched comparison that separates "a window closed"
+from "a clock started late". Falsifier stated up front: if rescue10k emerges at the same
+use-supplied delay as noop, deprivation only postpones and there is no critical period here.
+
+Box now at 30/32 cores busy (9 factorial + 21 branch).
+
 ## 2026-08-08 — PLATFORM GATES PASSED (Q2 bitwise, Q3 fp32)
 
 **Q2 exact-branch replay: TIER T0 (BITWISE).** Forked q4_s5 at step 4000, replayed to 8000 on
