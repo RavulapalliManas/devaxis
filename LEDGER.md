@@ -1,5 +1,46 @@
 # devaxis ledger
 
+## 2026-08-08 ~19:20Z — ARTIFACT AUDIT of the critical-period finding (+ a p-value RETRACTION)
+
+Ran a five-check falsification battery (`tools/artifact_check.py`) against my own interim claim.
+
+**MECHANICAL ARTIFACTS — ALL RULED OUT:**
+- **A1 the rescue really happens.** 182-185 evals per run with p_now == 1.0 after step 14,000
+  and 40 evals with p_now == 0.0 during the window; ZERO violations in 5/5 runs. This was the
+  dangerous one: a broken schedule would make rescue identical to deprive, which is exactly
+  what the data look like.
+- **A2 the gradient really changes.** Training loss jumps 0.0001 -> 0.19 at the rescue step in
+  every run. (During deprivation the loss is ~0.0001: the model has perfectly mastered the only
+  supervised tokens, the recap.) The mask genuinely reopens.
+- **A3 the model is not broken.** recap = 1.000 (min, median, max) in BOTH deprived and rescued
+  arms. The read circuit is perfect; only USE fails. This is a represented-but-unusable
+  dissociation, not a damaged network.
+- **A4 the readout is alive.** query_ctx oscillates 0.20-0.30 around chance 0.25 in the failing
+  arms while noop controls reach 0.91-0.95 on the same eval code.
+- **NEW, and the strongest single piece of evidence: zero learning progress.** Over the 42,000
+  use-supplied steps after rescue, loss goes 0.1863 -> 0.1786 and query_ctx stays 0.252, 0.257,
+  0.261, 0.252, 0.247, 0.249 — dead flat, in all 5 runs. Controls forked from the SAME
+  checkpoint fall to 0.029-0.09 loss and 0.67-0.93 query_ctx within 5,000-25,000 steps. The
+  rescued models are not learning slowly; they are not learning.
+
+**STATISTICS — I OVERSTATED THEM AND RETRACT:**
+My Fisher p = 0.0079 (noop 4/4 vs rescue 0/5) was anti-conservative. It ignored that this is a
+PAIRED design and it compared unequal parent sets (noop had s2,s3,s5,s6; rescue had
+s1,s3,s5,s6,s7) when parents differ ~4x in intrinsic emergence time (3,000 to 27,750 steps).
+Only 3 parents are currently in both arms. The defensible number is the paired sign test:
+**3/3 reversals, one-tailed p = 0.125 — NOT significant.**
+With all 7 parents paired, 7/7 would give p = 0.0078.
+
+**STATUS: mechanism verified real; effect large and perfectly consistent; sample too small.**
+Arms are incomplete (noop 4/7, deprive 6/7, rescue 5/7). What decides it: (a) the remaining
+pairs, (b) tonight's tau dose-response {2k,5k,20k} — a monotone curve is far harder to explain
+away than any single contrast.
+
+**External consistency (NOT my measurement, cross-session):** the clocks-law session reports an
+independent tau dose-response on different hardware — tau=2,000 7/10 emerged vs tau=6,000 0/10
+(Fisher p~0.0015). Our tau=10,000 giving 0/5 is consistent with their tau=6,000 arm. Encouraging
+but it is their result, and it must not be folded into ours.
+
 ## 2026-08-08 ~18:55Z — INTERIM (not terminal): the branch matrix is showing a critical period
 
 **Branch matrix, fork at step 4000** (pre-emergence for every parent, post-read for every
