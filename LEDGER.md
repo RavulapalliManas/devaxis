@@ -1,5 +1,25 @@
 # devaxis ledger
 
+## 2026-08-07 (night) — EXPERIMENTS LIVE
+
+**Last:** DD factorial + Q4 baseline RUNNING on all 32 NeuronCores of i-0c6939e339ff4192e
+(launched ~23:50Z): 8 baseline seeds (q4_s0..7, = Q4 gate + none-control) + 8 pre-registered
+cells {exact,paraphrase} x interval {50,500} x order {fixed,scrambled} x 3 seeds; rate=0.25,
+pool=64; primary endpoint = emergence step of query_ctx>=0.625 (right-censored); ckpt_every=4000
++ {1000,2000,3000} early forks. Measured single-core rate 0.67 steps/s (bench wave-1; K=4 graph
+compile ~5 min, now cached) -> full wave <=~50 h wall; S3 sync every 10 min. Q1 grid preempted
+deliberately on user direction: single-proc rate captured, 32-proc efficiency will be computed
+from the factorial run records themselves vs bench_n1 (intermediate grid waves served no
+decision). Q2/Q3 fire on first freed lanes; if they fail, interpretation is scoped per the
+failure matrix (platform becomes a factor) — collection is unaffected.
+
+**Next:** monitor ticks every ~45 min (crashes/retries/emergences); Q2+Q3 on freed lanes;
+aggregate.py after first emergences; branch matrix from the dense ckpts once cells have
+pre/mid/post-emergence coverage.
+
+**Blockers:** none.
+
+
 ## 2026-08-07 (Day 1, late) — box LIVE, G0 complete
 
 **Last:**
