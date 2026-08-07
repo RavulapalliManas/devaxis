@@ -76,7 +76,8 @@ def run(man: dict, backend_name: str, mutate: str | None = None) -> dict:
     torch.manual_seed(m["init_seed"])
     np.random.seed(m["init_seed"])
     model = GPT(v.size, d=m["model"]["d"], nl=m["model"]["nl"], nh=m["model"]["nh"],
-                ctx=ctx, attn=m.get("attn", "mha")).to(dev)
+                ctx=ctx, attn=m.get("attn", "mha"),
+                mask_value=m.get("mask_value", "neg_inf")).to(dev)
     if precision == "fp64":
         assert backend_name == "cpu", "fp64 is the CPU oracle leg only"
         model = model.double()

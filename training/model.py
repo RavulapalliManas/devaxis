@@ -56,16 +56,24 @@ class Block(nn.Module):
 
 
 class GPT(nn.Module):
-    def __init__(s, vocab, d=256, nl=6, nh=8, ctx=512, attn="mha"):
+    """mask_value: "neg_inf" reproduces the reference implementation exactly; "finite" uses
+    finfo(dtype).min.  Forward is identical (softmax of a value that underflows to exactly 0),
+    but the BACKWARD differs: 0 * (-inf) = NaN under XLA's decomposed softmax gradient, while
+    0 * finite = 0.  This is the classic XLA/Neuron attention-mask NaN."""
+
+    def __init__(s, vocab, d=256, nl=6, nh=8, ctx=512, attn="mha", mask_value="neg_inf"):
         super().__init__()
         s.tok = nn.Embedding(vocab, d); s.pos = nn.Embedding(ctx, d)
         s.blocks = nn.ModuleList([Block(d, nh, attn) for _ in range(nl)])
         s.lnf = nn.LayerNorm(d); s.head = nn.Linear(d, vocab, bias=False)
         s.ctx = ctx
+        s.mask_value = mask_value
 
     def forward(s, ids, want_hidden=False):
         T = ids.shape[1]
-        m = torch.triu(torch.full((T, T), float("-inf"), device=ids.device, dtype=s.tok.weight.dtype), 1)
+        dt = s.tok.weight.dtype
+        neg = float("-inf") if s.mask_value == "neg_inf" else torch.finfo(dt).min
+        m = torch.triu(torch.full((T, T), neg, device=ids.device, dtype=dt), 1)
         x = s.tok(ids) + s.pos(torch.arange(T, device=ids.device))[None]
         hs = []
         for b in s.blocks:
