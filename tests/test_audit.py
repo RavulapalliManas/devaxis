@@ -52,18 +52,25 @@ def test_detached_head_detected(tmp_path):
 
 @pytest.mark.slow
 def test_random_labels_and_eval_position(tmp_path):
-    torch.set_num_threads(4)
+    # Emergence is stochastic ACROSS DATA STREAMS at fixed init seed (measured: stream
+    # probe_small_s0 emerged at step 1500; stream "sclean", same seed/config, was still at
+    # chance at 6000).  So the clean arm PINS the validated stream — data_streams decouples
+    # the bytes from run_id precisely so this is possible.  Threads=2 matches the validation
+    # run (BLAS reduction order).
+    torch.set_num_threads(2)
     out = str(tmp_path)
     clean = dict(DENSE, run_id="sclean", steps=6000, stop_at=0.9,
-                 ckpt_every=1000, out_dir=out)
+                 ckpt_every=1000, out_dir=out,
+                 data_streams=[dict(from_step=0, stream_id="probe_small_s0")])
     crec = engine.run(clean, "cpu")
     final = crec["evals"][-1]["query_ctx"]
     if final < 0.8:
         pytest.skip(f"clean dense-vocab run did not emerge (qctx={final:.2f}) — "
                     "random_labels/wrong_eval_position detectors NOT validated")
 
-    # random_labels: same budget, corrupted answer supervision -> must stay at chance
-    mrec = engine.run(dict(DENSE, run_id="srand", steps=6000, out_dir=out),
+    # random_labels: SAME stream, corrupted answer supervision -> must stay at chance
+    mrec = engine.run(dict(DENSE, run_id="srand", steps=6000, out_dir=out,
+                           data_streams=[dict(from_step=0, stream_id="probe_small_s0")]),
                       "cpu", mutate="random_labels")
     assert detect(mrec)["at_chance"], mrec["evals"][-1]
 
