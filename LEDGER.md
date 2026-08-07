@@ -1,5 +1,29 @@
 # devaxis ledger
 
+## 2026-08-08 ~19:50Z — 6 lost branch runs RECOVERED; the paired design will be complete
+
+Caught during the tick: the branch matrix reported "all lanes drained" with only **15 of 21**
+runs. The 6 missing ones never produced a run JSON at all — they were launched onto NeuronCores
+still held by factorial runs, failed at runtime init, exhausted their retries, and vanished.
+They were invisible in the results because a run that never starts writes nothing.
+
+**Why it mattered scientifically:** the missing set was `br_noop_q4_s1`, `br_noop_q4_s4`,
+`br_noop_q4_s7`, `br_rescue10k_q4_s2`, `br_rescue10k_q4_s4`, `br_deprive_q4_s6` — i.e. THREE OF
+THE MISSING RUNS WERE NO-OP CONTROLS, the exact arm (4/7) that was limiting the paired analysis
+to 3 parents and p = 0.125. Recovering them takes every arm to 7/7 and the paired comparison to
+7 parents; 7/7 reversals would be p = 0.0078.
+
+**Fixed two ways:**
+- recovery queue for the 6 runs launched on verified-free cores (`devaxis-branchfix`); 21/21 run
+  records now exist;
+- **builders now query /proc for cores already held by a live trainer and skip them**, so a wave
+  can never again be launched onto occupied lanes. This was the root cause, not bad luck.
+
+Note the failure mode for the future: `topology.py` marks such a job FAILED after retries, but
+with no run JSON it is absent from every downstream count. The morning report counts runs that
+EXIST; a job that never started is invisible unless the queue is diffed against the results —
+which is what `tools/missing.py` now does.
+
 ## 2026-08-08 ~19:20Z — ARTIFACT AUDIT of the critical-period finding (+ a p-value RETRACTION)
 
 Ran a five-check falsification battery (`tools/artifact_check.py`) against my own interim claim.
