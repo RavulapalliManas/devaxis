@@ -1,5 +1,47 @@
 # devaxis ledger
 
+## 2026-08-08 — ROOT CAUSE: the -inf attention mask NaN'd every Neuron run
+
+**The failure.** The v2 wave ran 32 cores for hours at 8.4 steps/s producing **NaN loss and
+recap 0.000 through 36,000 steps** — fast garbage. I reported "17x faster" without checking
+that the runs were learning. Wave archived (`runs/factorial_v2_NAN`).
+
+**The cause (9-arm bisect on 9 cores, `tools/nan_bisect.py`, arm JSONs in S3):**
+
+| arm | change from failing config | max recap | loss |
+|---|---|---|---|
+| A_repro | none (control) | 0.000 | NaN |
+| D_explicit | own attention impl | 0.000 | NaN |
+| E_bf16 / F_bs32 / G_nl2 | precision / batch / depth | 0.000 | NaN |
+| H_ctx22 | K=2,D=8 (ctx 54 -> 22) | 1.000 | 3.58 -> 0.24 |
+| **C_finite** | **mask_value=finite** | **1.000** | **4.71 -> 0.24** |
+| I_fin_expl | finite + explicit attn | 1.000 | 4.78 -> 0.24 |
+
+`torch.full(..., -inf)` causal mask + Neuron's tiled softmax: at ctx=54 whole tiles sit above
+the diagonal, so a tile is entirely -inf and `-inf - (-inf) = NaN`. At ctx=22 no tile is fully
+masked — which is exactly why the Q0 smoke (ctx=22) passed and the science config did not.
+Fix: `finfo(float32).min`. Forward is bitwise identical (the exponent underflows to 0 either
+way) — proven by `test_finite_mask_is_bitwise_identical_on_cpu`; only the backward differs.
+
+**Also corrected:** the "17x from sync_every" claim was WRONG. An A/A comparison measured
+speedup 0.99; the 0.5 -> 8.4 steps/s jump was the NEFF **compile cache warming**, not
+windowing. sync_every is back to 1 (its windowed engine also SIGHUP'd the compiler under
+32-way launch).
+
+**Engineering fixes shipped (`de6f52b`, 25/25 tests):**
+- XLA-safe finite attention mask (+ CPU equivalence test).
+- Health gate 1: NaN loss fails the run at the first eval.
+- Health gate 2: recap < 0.5 by step 2000 fails the run (reference: 45/45 saturate by 500).
+- Staggered lane launch (8 s) — the compile storm that SIGHUP'd neuronx-cc.
+- Canary-gated launcher (`tools/launch_wave.py`): one run must prove the platform trains this
+  exact config (and warm the cache) before 48 cores commit.
+- Recompile tripwire -> telemetry (was false-positive killing healthy runs).
+- systemd units for wave + launch (SSM child processes were dying with their parent).
+
+**Next:** canary verdict -> wave (48 runs, 5 seeds/cell) -> first emergences -> Q2/Q3 on free
+lanes -> branch matrix.
+
+
 ## 2026-08-07 (night) — EXPERIMENTS LIVE
 
 **Last:** DD factorial + Q4 baseline RUNNING on all 32 NeuronCores of i-0c6939e339ff4192e
