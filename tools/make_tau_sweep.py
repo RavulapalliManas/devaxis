@@ -34,6 +34,26 @@ TAUS = [2000, 5000, 20000]
 BUDGET = 70000
 
 
+
+
+def busy_cores():
+    """Cores already held by a live trainer.  Assigning a job to a busy NeuronCore makes it
+    fail at runtime init — that is how 6 of 21 branch-matrix runs were silently lost on
+    2026-08-08 when a wave was launched while the previous one still held lanes."""
+    import subprocess
+    out = set()
+    for p in subprocess.run(["pgrep", "-f", "training[.]train"],
+                            capture_output=True, text=True).stdout.split():
+        try:
+            env = open(f"/proc/{p}/environ", "rb").read().decode(errors="ignore").split("\0")
+            for x in env:
+                if x.startswith("NEURON_RT_VISIBLE_CORES="):
+                    out.add(int(x.split("=", 1)[1]))
+        except Exception:
+            pass
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--factorial", default=os.path.expanduser("~/devaxis-work/factorial"))
@@ -43,7 +63,11 @@ def main():
     a = ap.parse_args()
     os.makedirs(a.out, exist_ok=True)
     lo, hi = (int(x) for x in a.cores.split("-"))
-    cores = list(range(lo, hi + 1))
+    held = busy_cores()
+    cores = [c for c in range(lo, hi + 1) if c not in held]
+    if held:
+        print(f"[cores] avoiding busy cores {sorted(held)}; using {len(cores)}")
+    assert cores, "no free cores"
 
     parents = []
     for s in range(8):
