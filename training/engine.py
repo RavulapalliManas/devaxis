@@ -31,7 +31,7 @@ from diagnostics import battery
 COMPILE_PROBE = 500          # steps after which the graph set must be frozen (neuron)
 
 DEFAULTS = dict(logit_every=1000, ckpt_every=0, ckpt_at=[], stop_at=0.0, precision="fp32",
-                eval_n=512, eval_bs=128, allow_recompile=False, attn="mha")
+                eval_n=512, eval_bs=128, allow_recompile=False, attn="mha", sync_every=1)
 
 
 def manifest_hash(man: dict) -> str:
@@ -60,6 +60,14 @@ def run(man: dict, backend_name: str, mutate: str | None = None) -> dict:
     ckpt_set = set(m["ckpt_at"])
     eval_every, steps = m["eval_every"], m["steps"]
     assert all(c % eval_every == 0 for c in ckpt_set), "ckpt steps must sit on the eval grid"
+    # sync_every > 1 amortizes XLA dispatch: N steps are traced lazily and executed as one
+    # graph.  Identical math in identical order; the changing warmup LR stays a graph INPUT
+    # because bootstrap pins XLA_NO_SPECIAL_SCALARS=1.  This is a declared numerical condition:
+    # it must pass the 1-step-vs-N-step equivalence check on the target platform before any
+    # confirmatory use (see LEDGER).  Boundaries (eval/ckpt) always sync.
+    sync_every = int(m["sync_every"])
+    assert sync_every >= 1 and eval_every % sync_every == 0, \
+        "eval_every must be a multiple of sync_every"
     precision = m["precision"]
 
     be = make_backend(backend_name)
@@ -181,7 +189,8 @@ def run(man: dict, backend_name: str, mutate: str | None = None) -> dict:
         opt.step()
         loss_acc = loss.detach() if loss_acc is None else loss_acc + loss.detach()
         loss_n += 1
-        be.sync()
+        if (step + 1) % sync_every == 0:
+            be.sync()
 
         if audit_active:                                 # host reads: audit runs are CPU-only
             hg = model.head.weight.grad

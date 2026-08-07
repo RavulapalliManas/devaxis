@@ -26,3 +26,20 @@ def test_fp64_golden_trajectory(tmp_path):
     assert len(traj) == len(gold)
     for a, b in zip(traj, gold):
         assert abs(a - b) <= 1e-7 * max(abs(b), 1.0), (traj, gold)
+
+
+def test_sync_every_windowing_identical_on_cpu(tmp_path):
+    """sync_every changes only WHERE sync() lands (a no-op on cpu): records must be bitwise
+    identical.  Guards the windowing/boundary logic, not numerics."""
+    import torch as _t
+    _t.set_num_threads(1)
+    base = dict(run_id="w1", init_seed=5, task=dict(K=2, D=8), model=dict(d=64, nl=2, nh=4),
+                bs=16, lr=3e-3, wd=0.1, warmup=100, p_schedule="1.0", steps=30,
+                eval_every=10, eval_n=32, eval_bs=16, out_dir=str(tmp_path))
+    r1 = engine.run(dict(base, run_id="w1"), "cpu")
+    r5 = engine.run(dict(base, run_id="w5", sync_every=5,
+                         data_streams=[dict(from_step=0, stream_id="w1")]), "cpu")
+    for a, b in zip(r1["evals"], r5["evals"]):
+        for k in ("recap", "query", "query_ctx", "train_loss_mean"):
+            if k in a or k in b:
+                assert a.get(k) == b.get(k), (k, a, b)
