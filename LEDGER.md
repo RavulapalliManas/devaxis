@@ -1,5 +1,38 @@
 # devaxis ledger
 
+## 2026-08-08 ~18:55Z — INTERIM (not terminal): the branch matrix is showing a critical period
+
+**Branch matrix, fork at step 4000** (pre-emergence for every parent, post-read for every
+parent). Arms differ ONLY in the use-supply schedule p.
+
+| arm | n | terminal | emerged | use-supplied steps |
+|---|---|---|---|---|
+| noop (p=1) | 4 | 4 | **4/4** | delays to emergence [3000, 4500, 5750, 27750], median 5125 |
+| deprive (p=0 forever) | 6 | 0 | **0/6** | ~52,000 elapsed, query_ctx 0.22-0.27 (chance 0.25) |
+| rescue10k (p=0 at 4k, p=1 at 14k) | 5 | 0 | **0/5** | **~42,000 since rescue**, query_ctx 0.22-0.27 |
+
+Two things are already established and do not depend on the runs finishing:
+
+1. **The no-op fork reproduces its parent at the level of the SCIENCE ENDPOINT.** All four
+   noop children emerged at exactly their parent's step: 9750/7000/8500/31750 vs parent
+   9750/7000/8500/31750. Q2's bitwise certificate showing up where it matters.
+2. **The deprived-then-rescued arm has now had 42,000 use-supplied steps — 1.5x the SLOWEST
+   noop delay and 8.2x the median — and none of the 5 has emerged.** Fisher exact one-tailed
+   on 4/4 vs 0/5 is p = 0.0079.
+
+This is the DAMAGE branch of the pre-registered falsifier, not DELAY: a 10,000-step deprivation
+applied at a pre-emergence state appears to FORECLOSE the use circuit rather than postpone it.
+The tau sweep queued for tonight (tau in {2k,5k,20k}) turns this single contrast into a
+dose-response curve, which is the thing worth believing.
+
+**INTERIM. Not terminal (~4,000 steps left in each arm), n=4 vs n=5, one wave, one fork state.**
+Do not quote as a result until the arms terminate and the tau curve exists.
+
+Also noted: one factorial run (dd_paraphrase_short_fixed_s4) restarted and sits at 10,250/120,000,
+so it will still be running when the orchestrator advances (it proceeds at 48/49 terminal). The
+tau phase may lose at most one run to core contention with it; the dispatcher will mark it
+FAILED and the morning report lists failures.
+
 ## 2026-08-08 — OVERNIGHT PROGRAM ARMED (unattended, laptop-independent)
 
 Everything runs on the box under systemd; no laptop, no tmux attachment, no SSH session is
