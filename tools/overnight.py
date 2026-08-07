@@ -129,16 +129,32 @@ def sync():
                    capture_output=True)
 
 
-def phase(label, builder_args, queue, run_dir, expect):
-    """Build -> launch -> wait -> sync.  Never raises; returns a status dict."""
+def queue_len(queue):
+    try:
+        return sum(1 for l in open(queue) if l.strip())
+    except Exception:
+        return 0
+
+
+def phase(label, builder_args, queue, run_dir, expect=None):
+    """Build -> launch -> wait -> sync.  Never raises; returns a status dict.
+
+    `expect` is read from the QUEUE the builder actually wrote, not hardcoded: a builder that
+    legitimately emits fewer runs (e.g. a parent lacking the checkpoint a fork needs) would
+    otherwise leave the waiter blocking until the stall timeout for work that will never exist.
+    """
     try:
         if builder_args:
             r = py(*builder_args)
             log(f"[{label}] build: {r.stdout.strip()[:300]} {r.stderr.strip()[-200:]}")
             if r.returncode != 0:
                 return dict(phase=label, status="BUILD_FAILED", err=r.stderr[-500:])
+        expect_n = queue_len(queue)
+        if expect_n == 0:
+            return dict(phase=label, status="EMPTY_QUEUE")
+        log(f"[{label}] queue has {expect_n} runs")
         p = launch(queue, label)
-        ok = wait_drain(run_dir, expect, label, queue=queue, proc=p)
+        ok = wait_drain(run_dir, expect_n, label, queue=queue, proc=p)
         if p.poll() is None:
             p.terminate()
         sync()
@@ -167,14 +183,14 @@ def main():
         "tau",
         [os.path.join(DEVAXIS, "tools/make_tau_sweep.py"), "--out", f"{WORK}/tausweep",
          "--cores", "0-31"],
-        f"{WORK}/tausweep/queue.jsonl", "runs/tau", 21))
+        f"{WORK}/tausweep/queue.jsonl", "runs/tau"))
 
     # Phase C — DD10, same data from two developmental states.
     results.append(phase(
         "dd10",
         [os.path.join(DEVAXIS, "tools/make_dd10.py"), "--out", f"{WORK}/dd10mx",
          "--cores", "0-31"],
-        f"{WORK}/dd10mx/queue.jsonl", "runs/dd10", 16))
+        f"{WORK}/dd10mx/queue.jsonl", "runs/dd10"))
 
     # Morning report — always written, whatever happened above.
     log("=== building morning report ===")
