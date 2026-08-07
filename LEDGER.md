@@ -1,5 +1,24 @@
 # devaxis ledger
 
+## 2026-08-08 (mid-wave) — 37/48 terminal, Q gates running on freed lanes
+
+MEASURED: 48 runs reporting, **37 emerged**, 37 terminal, 11 still training (non-emergers run
+the full 120k budget; furthest at 48k). 8.4 steps/s/core, 403 steps/s aggregate, 0 failures.
+Emergence steps span 6,750–37,000 across all cells; baseline 7,000–31,750.
+
+NOT reporting comparisons yet: cells started hours apart, so any cross-cell contrast right now
+measures launch order. `analyse.py` prints its own NOT FINAL banner and I am honouring it.
+(This trap already fired once: paraphrase cells read 0/5 emerged at 07:00 purely because they
+had not started — by 08:20 they were at 5/5.)
+
+Built while waiting: `analysis/analyse.py` — Kaplan-Meier + log-rank vs baseline, Holm-corrected,
+right-censoring honoured (a non-emerger contributes "> last_step", never "= max step").
+VALIDATED ON GROUND TRUTH BOTH WAYS before use: identical groups -> chi2 0.000 p 1.000;
+separated groups -> chi2 9.701 p 0.0018; censored observation refuses to become an event.
+
+Q2 (no-op branch replay from q4_s5 @4000 -> 8000) and Q3 (neuron fp32 + bf16 vs the S3 CPU
+yardstick: loss <= 1.8e-05, param relL2 <= 2.5e-03) launched on cores 28-30.
+
 ## 2026-08-08 — WAVE v3 LIVE AND VERIFIED HEALTHY
 
 Canary gate PASSED (8/8 finite losses, max_recap 1.000) -> wave started under `devaxis-wave`.
