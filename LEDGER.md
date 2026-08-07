@@ -1,5 +1,21 @@
 # devaxis ledger
 
+## 2026-08-08 — PLATFORM GATES PASSED (Q2 bitwise, Q3 fp32)
+
+**Q2 exact-branch replay: TIER T0 (BITWISE).** Forked q4_s5 at step 4000, replayed to 8000 on
+the same NeuronCore: metric_drift_max 0.0, metrics_exact True, bitwise True,
+max_rel_param_div 0.0, across 17 eval points. STRONGER than the T1 the plan expected on trn1.
+Consequence: in the branch matrix, any parent-child difference is caused by the intervention,
+never by the platform.
+
+**Q3 numerical equivalence vs the CPU fp64 oracle (same keyed stream, 200 steps):**
+  neuron fp32 : max relative dloss 2.081e-06  -> PASS (bar 1.798e-05; CPU's own fp32 = 1.798e-06)
+  neuron bf16 : max relative dloss 2.388e-02  -> fails the fp32 bar, AS IT SHOULD
+bf16 has an 8-bit mantissa (eps ~7.8e-03), so ~1e-2 relative error is what bf16 IS, not a
+defect — it is a separate numerical condition needing its own developmental-equivalence study
+before any science use. The factorial runs fp32, i.e. the certified leg, at 2.8x the platform's
+irreducible error. Neuron fp32 results may be pooled with the CPU reference sweep.
+
 ## 2026-08-08 (mid-wave) — 37/48 terminal, Q gates running on freed lanes
 
 MEASURED: 48 runs reporting, **37 emerged**, 37 terminal, 11 still training (non-emergers run
