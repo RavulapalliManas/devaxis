@@ -1,5 +1,49 @@
 # devaxis ledger
 
+## 2026-08-08 ~20:35Z — RESULTS: factorial is a clean NULL; the critical period reaches p = 0.0078
+
+### 1. DD factorial — COMPLETE (49/49 terminal) — NULL
+
+| cell | n | events | censored | KM median emergence |
+|---|---|---|---|---|
+| baseline (no recurrence) | 8 | 7 | 1 | 9,750 |
+| exact / short / fixed | 5 | 5 | 0 | 10,000 |
+| exact / short / scrambled | 5 | 5 | 0 | 9,000 |
+| exact / long / fixed | 5 | 3 | 2 | 16,750 |
+| exact / long / scrambled | 5 | 3 | 2 | 12,000 |
+| paraphrase / short / fixed | 5 | 4 | 1 | 17,500 |
+| paraphrase / short / scrambled | 5 | 5 | 0 | 8,500 |
+| paraphrase / long / fixed | 5 | 4 | 1 | 9,250 |
+| paraphrase / long / scrambled | 5 | 4 | 1 | 9,500 |
+
+Log-rank vs baseline, Holm-corrected: **every cell p_holm = 1.0** (smallest raw p = 0.197).
+At rate 0.25 with a 64-program pool, recurrence TYPE (exact vs paraphrase), SPACING (50 vs 500)
+and ORDER (fixed vs scrambled) do not measurably move when the use circuit emerges. Honest
+scope: n = 5 per cell powers only large shifts, so this is "no large effect", not "no effect".
+
+### 2. Branch matrix — all arms COMPLETE at 7/7 parents — POSITIVE
+
+| arm | n | emerged | use-supplied steps |
+|---|---|---|---|
+| noop (p = 1) | 7 | **7/7** | delays 3000, 4500, 4750, 5750, 6500, 11500, 27750 (median 5,750) |
+| deprive (p = 0 forever) | 7 | **0/7** | to 46,000 |
+| rescue10k (p=0 at 4k, p=1 at 14k) | 7 | **0/7** | 5 censored >46,000, 2 censored >13,250 |
+
+**PAIRED sign test over all 7 parents: 7/7 reversals, one-tailed p = 0.0078.**
+
+The sign is LOCKED for every pair, including the two shorter censorings: q4_s2's control emerged
+at 4,500 use-supplied steps and its rescued twin is already past 13,250 without emerging;
+q4_s4's control took 6,500 against >13,250. A pair can no longer flip, so this p-value will not
+change when those two finish.
+
+**Read the two results together:** how repetition is DISTRIBUTED did not move emergence at all;
+WHEN the supply arrives decided whether it happens. Same task, same model, same corpus, same
+platform, same analysis.
+
+Still owed before this is a claim rather than a result: the tau dose-response {2k, 5k, 20k}
+(running tonight) — a monotone curve is far harder to explain away than one contrast; and the
+scope limits stand (one fork state, one task, one model size, 7 seeds).
+
 ## 2026-08-08 ~19:50Z — 6 lost branch runs RECOVERED; the paired design will be complete
 
 Caught during the tick: the branch matrix reported "all lanes drained" with only **15 of 21**
