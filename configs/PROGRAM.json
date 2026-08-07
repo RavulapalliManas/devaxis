@@ -1,0 +1,16 @@
+[
+ {"name": "window",
+  "builder": ["tools/make_window.py", "--out", "<WORK>/winmx", "--cores", "0-31", "--seeds", "5"],
+  "queue": "<WORK>/winmx/queue.jsonl", "run_dir": "runs/window",
+  "question": "Is this a critical PERIOD? Fixed insult (tau=10k) at ages 1k/2k/4k/8k/12k."},
+
+ {"name": "mech",
+  "builder": ["tools/make_mechanism.py", "--out", "<WORK>/mechmx", "--cores", "0-31"],
+  "queue": "<WORK>/mechmx/queue.jsonl", "run_dir": "runs/mech",
+  "question": "WHAT blocks the rescue? optimizer state vs LR scale vs weights."},
+
+ {"name": "dd10",
+  "builder": ["tools/make_dd10.py", "--out", "<WORK>/dd10mx", "--cores", "0-31"],
+  "queue": "<WORK>/dd10mx/queue.jsonl", "run_dir": "runs/dd10",
+  "question": "Is the value of the SAME data conditional on developmental state?"}
+]

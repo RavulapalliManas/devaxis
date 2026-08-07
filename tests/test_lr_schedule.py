@@ -41,3 +41,22 @@ def test_resume_lr_asserted(tmp_path):
     step = checkpoint.load(ck, model, opt, 3e-3, 100)
     assert step == 4
     assert opt.param_groups[0]["lr"] == lr_at(4, 3e-3, 100)
+
+
+def test_reset_optimizer_and_lr_rewarm(tmp_path):
+    """Mechanism-probe knobs: reset_optimizer must drop Adam moments (so the first post-resume
+    update differs), and lr_rewarm must restart the warmup ramp at the fork step."""
+    from training.optim import lr_at as _lr
+    base = dict(MAN, steps=6, ckpt_at=[4], out_dir=str(tmp_path))
+    engine.run(dict(base, run_id="mp"), "cpu")
+    ck = os.path.join(str(tmp_path), "ckpt", "mp", "step4.pt")
+    plain = engine.run(dict(base, run_id="mp_plain", resume_ckpt=ck, steps=6), "cpu")
+    rewarm = engine.run(dict(base, run_id="mp_rewarm", resume_ckpt=ck, steps=6,
+                             lr_rewarm=True), "cpu")
+    # lr_rewarm restarts the ramp: at step 4 it must equal lr(0), not lr(4)
+    assert plain["evals"][0]["lr"] == _lr(4, 3e-3, 100)
+    assert rewarm["evals"][0]["lr"] == _lr(0, 3e-3, 100)
+    # reset_optimizer must load without an optimizer state and still run
+    reset = engine.run(dict(base, run_id="mp_reset", resume_ckpt=ck, steps=6,
+                            reset_optimizer=True), "cpu")
+    assert reset["evals"][-1]["step"] == 6

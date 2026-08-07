@@ -86,7 +86,16 @@ def run(man: dict, backend_name: str, mutate: str | None = None) -> dict:
 
     step0 = 0
     if m.get("resume_ckpt"):
-        step0 = checkpoint.load(m["resume_ckpt"], model, opt, m["lr"], m["warmup"])
+        # reset_optimizer: restore weights but NOT Adam moments — the mechanism probe for
+        # "what accumulates during deprivation and blocks later learning".  lr_rewarm: restart
+        # the warmup clock at the fork, so the rescued run gets the same LR ramp a fresh run
+        # would.  Both default off, so existing manifests are unaffected.
+        step0 = checkpoint.load(m["resume_ckpt"], model,
+                                None if m.get("reset_optimizer") else opt,
+                                m["lr"], m["warmup"])
+        if m.get("reset_optimizer"):
+            opt = make_optimizer(model, m["lr"], m["wd"])
+    lr_origin = step0 if m.get("lr_rewarm") else 0
 
     os.makedirs(out_dir, exist_ok=True)
     out_path = os.path.join(out_dir, f"{run_id}.json")
@@ -115,7 +124,8 @@ def run(man: dict, backend_name: str, mutate: str | None = None) -> dict:
                                     want_logit_stats=(step % m["logit_every"] == 0),
                                     ans_offset=(-2 if mutate == "wrong_eval_position" else 0))
             be.sync()
-            ev = dict(step=step, p_now=p_at(sched, step), lr=lr_at(step, m["lr"], m["warmup"]),
+            ev = dict(step=step, p_now=p_at(sched, step),
+                      lr=lr_at(step - lr_origin, m["lr"], m["warmup"]),
                       wall=time.time() - t0, **mm)
             if loss_n:
                 ev["train_loss_mean"] = float(loss_acc.item()) / loss_n
@@ -217,7 +227,7 @@ def run(man: dict, backend_name: str, mutate: str | None = None) -> dict:
         if loss.requires_grad:
             loss.backward()
         gn = torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
-        set_lr(opt, lr_at(step, m["lr"], m["warmup"]))   # BEFORE step — the CP-bug fix
+        set_lr(opt, lr_at(step - lr_origin, m["lr"], m["warmup"]))  # BEFORE step — CP-bug fix
         opt.step()
         loss_acc = loss.detach() if loss_acc is None else loss_acc + loss.detach()
         loss_n += 1
