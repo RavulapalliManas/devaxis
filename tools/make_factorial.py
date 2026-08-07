@@ -23,12 +23,15 @@ from generators import binding, keys, recurrence
 from generators.binding import Vocab
 from schemas.validate import validate_manifest, validate_data_manifest
 
+# v2 (wave relaunch, user-directed): sync_every=25 (dispatch amortization; equivalence pair
+# embedded as the first two lane jobs), 5 seeds/cell.  v1 (3 seeds, sync_every=1) aborted at
+# ~2h; identical data streams mean v2 re-traverses the same bytes — nothing scientific lost.
 BASE = dict(task=dict(K=4, D=32), model=dict(d=256, nl=6, nh=8), bs=128,
             lr=3e-3, wd=0.1, warmup=500, p_schedule="1.0", steps=120000,
             eval_every=250, logit_every=1000, stop_at=0.90,
-            ckpt_every=4000, ckpt_at=[1000, 2000, 3000])
+            ckpt_every=4000, ckpt_at=[1000, 2000, 3000], sync_every=25)
 RATE, POOL = 0.25, 64
-SEEDS = [0, 1, 2]
+SEEDS = [0, 1, 2, 3, 4]
 BASELINE_SEEDS = list(range(8))
 
 
@@ -73,8 +76,20 @@ def main():
             validate_manifest(man)
             runs.append(man)
 
-    assert len(runs) == 32, len(runs)
+    assert len(runs) == 48, len(runs)
+    # sync_every equivalence pair: same stream, 1-step vs 25-step engine, first on lanes 0/1.
+    val = [dict(BASE, run_id=f"syncval_{n}", init_seed=0, sync_every=se, steps=3000,
+                stop_at=0.0, ckpt_every=0, ckpt_at=[3000], out_dir="runs/factorial",
+                data_streams=[dict(from_step=0, stream_id="syncval")])
+           for n, se in (("1step", 1), ("25step", 25))]
+    for man in val:
+        validate_manifest(man)
     queue = []
+    for i, man in enumerate(val):
+        path = os.path.join(a.out, f"{man['run_id']}.manifest.json")
+        with open(path, "w") as f:
+            json.dump(man, f, indent=1)
+        queue.append(dict(manifest=path, core=i))
     for i, man in enumerate(runs):
         path = os.path.join(a.out, f"{man['run_id']}.manifest.json")
         with open(path, "w") as f:
@@ -83,7 +98,7 @@ def main():
     with open(os.path.join(a.out, "queue.jsonl"), "w") as f:
         for q in queue:
             f.write(json.dumps(q) + "\n")
-    print(f"[factorial] {len(runs)} runs -> {a.out} (queue over {a.nproc} cores)")
+    print(f"[factorial] {len(runs)} science + 2 syncval runs -> {a.out} (queue over {a.nproc} cores)")
 
 
 if __name__ == "__main__":
