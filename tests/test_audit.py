@@ -82,6 +82,10 @@ def test_random_labels_and_eval_position(tmp_path):
     torch.manual_seed(0)
     model = GPT(v.size, d=64, nl=2, nh=4, ctx=seq_len(2, 8))
     checkpoint.load(os.path.join(out, "ckpt", "sclean", cks[-1]), model, None, 3e-3, 100)
+    # Offset -2 = the QMARK position, BEFORE the queried entity is revealed: chance there is
+    # information-theoretic, for any model.  Offset -1 (the entity token) is NOT a valid
+    # detector — the answer is already partially decodable one position early (measured 0.695
+    # on this checkpoint vs chance 0.5; the represent-before-use signature).
     good = battery.behavioral(model, 2, 8, v, "cpu", n=128, bs=64)["query_ctx"]
-    off = battery.behavioral(model, 2, 8, v, "cpu", n=128, bs=64, ans_offset=-1)["query_ctx"]
+    off = battery.behavioral(model, 2, 8, v, "cpu", n=128, bs=64, ans_offset=-2)["query_ctx"]
     assert good >= 0.8 and off <= 0.5 + 0.12, (good, off)

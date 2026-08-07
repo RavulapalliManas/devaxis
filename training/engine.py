@@ -103,7 +103,7 @@ def run(man: dict, backend_name: str, mutate: str | None = None) -> dict:
             model.eval()
             mm = battery.behavioral(model, K, D, v, dev, n=m["eval_n"], bs=m["eval_bs"],
                                     want_logit_stats=(step % m["logit_every"] == 0),
-                                    ans_offset=(-1 if mutate == "wrong_eval_position" else 0))
+                                    ans_offset=(-2 if mutate == "wrong_eval_position" else 0))
             be.sync()
             ev = dict(step=step, p_now=p_at(sched, step), lr=lr_at(step, m["lr"], m["warmup"]),
                       wall=time.time() - t0, **mm)

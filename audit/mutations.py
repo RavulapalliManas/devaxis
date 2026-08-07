@@ -9,8 +9,13 @@ Mutations and their detectors:
   detached_head       logits detached before loss     -> zero grads, loss real (varies)
   random_labels       answer labels permuted in-batch -> eval query_ctx stays at chance while the
                                                          paired clean run exceeds it (test_audit)
-  wrong_eval_position battery reads ans_pos - 1       -> query_ctx collapses to ~chance on a
-                                                         competent model (test_audit)
+  wrong_eval_position battery reads ans_pos - 2       -> query_ctx collapses to chance on a
+                                                         competent model: -2 is the QMARK
+                                                         position, before the queried entity
+                                                         is revealed, so chance is information-
+                                                         theoretic.  (-1 is NOT valid: the
+                                                         answer is partially decodable at the
+                                                         entity token — measured 0.695.)
 """
 from __future__ import annotations
 
