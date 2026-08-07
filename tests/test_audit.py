@@ -20,6 +20,15 @@ TINY = dict(init_seed=0, task=dict(K=2, D=8), model=dict(d=64, nl=2, nh=4), bs=3
             lr=3e-3, wd=0.1, warmup=100, p_schedule="1.0", eval_every=10,
             eval_n=64, eval_bs=32)
 
+# Dense-vocab regime for the slow detector tests: with ne=no=8 each entity recurs across
+# sequences ~8x more often, and emergence is fast — MEASURED on cpu-angad 2026-08-07
+# (probe_small_s0: qctx crossed 0.9 at step 1500; all default-vocab arms still at chance at
+# 2000+).  Detector validity does not depend on the science regime, only on having a
+# competent model.
+DENSE = dict(init_seed=0, task=dict(K=2, D=8), model=dict(d=64, nl=2, nh=4),
+             vocab=dict(ne=8, no=8, nd=32), bs=32, lr=3e-3, wd=0.1, warmup=100,
+             p_schedule="1.0", eval_every=100, eval_n=64, eval_bs=32)
+
 
 def test_clean_run_trips_nothing(tmp_path):
     man = dict(TINY, run_id="clean", steps=20, audit_mode=True, out_dir=str(tmp_path))
@@ -45,16 +54,16 @@ def test_detached_head_detected(tmp_path):
 def test_random_labels_and_eval_position(tmp_path):
     torch.set_num_threads(4)
     out = str(tmp_path)
-    clean = dict(TINY, run_id="sclean", steps=4000, stop_at=0.9, ckpt_at=[4000],
+    clean = dict(DENSE, run_id="sclean", steps=6000, stop_at=0.9,
                  ckpt_every=1000, out_dir=out)
     crec = engine.run(clean, "cpu")
     final = crec["evals"][-1]["query_ctx"]
     if final < 0.8:
-        pytest.skip(f"clean tiny run did not emerge (qctx={final:.2f}) — "
+        pytest.skip(f"clean dense-vocab run did not emerge (qctx={final:.2f}) — "
                     "random_labels/wrong_eval_position detectors NOT validated")
 
     # random_labels: same budget, corrupted answer supervision -> must stay at chance
-    mrec = engine.run(dict(TINY, run_id="srand", steps=4000, out_dir=out),
+    mrec = engine.run(dict(DENSE, run_id="srand", steps=6000, out_dir=out),
                       "cpu", mutate="random_labels")
     assert detect(mrec)["at_chance"], mrec["evals"][-1]
 
@@ -62,7 +71,7 @@ def test_random_labels_and_eval_position(tmp_path):
     cks = sorted((f for f in os.listdir(os.path.join(out, "ckpt", "sclean"))
                   if f.endswith(".pt")),
                  key=lambda f: int(f[4:-3]))          # numeric, not lexicographic
-    v = Vocab()
+    v = Vocab(**DENSE["vocab"])
     torch.manual_seed(0)
     model = GPT(v.size, d=64, nl=2, nh=4, ctx=seq_len(2, 8))
     checkpoint.load(os.path.join(out, "ckpt", "sclean", cks[-1]), model, None, 3e-3, 100)
