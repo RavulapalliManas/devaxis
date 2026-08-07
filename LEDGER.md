@@ -1,5 +1,31 @@
 # devaxis ledger
 
+## 2026-08-08 — OVERNIGHT PROGRAM ARMED (unattended, laptop-independent)
+
+Everything runs on the box under systemd; no laptop, no tmux attachment, no SSH session is
+required. Units: devaxis-overnight (orchestrator, Restart=on-failure), devaxis-wave,
+devaxis-branch, devaxis-guard (deadline), devaxis-sync.timer (S3 every 10 min).
+
+Queue: drain factorial (48) + branch matrix (21) -> Phase B tau dose-response (21 runs,
+tau in {2k,5k,20k}; tau=10k already running; tau=0 is the parent, free, since Q2 certified a
+no-op fork is BITWISE) -> Phase C DD10 same-data-different-state (fork the SAME exact-recurrence
+intervention from step 4000 vs 12000) -> MORNING_REPORT.md written and synced to
+s3://.../devaxis/MORNING_REPORT.md.
+
+TWO BUGS CAUGHT BEFORE THEY RAN OVERNIGHT (both mine):
+1. `running_count()` used an invalid `pgrep -m` flag and returned 0 ALWAYS, while the revive
+   rule read it — that would have spawned a second dispatcher on a live queue, i.e. two writers
+   per output file. Verified on the box the corrected pattern returns 20. The revive rule now
+   fires only when we have WATCHED OUR OWN dispatcher exit; systemd-owned waves are never
+   revived from here. Confirmed zero revives had fired and only the 2 legitimate dispatchers
+   existed, so nothing was corrupted.
+2. Phase waiters used a hardcoded expected count; a builder that legitimately emits fewer runs
+   (a parent missing the checkpoint a fork needs) would have stalled the night for 45 min.
+   Expected count is now read from the queue the builder actually wrote.
+
+Report-time discipline: morning_report.py recomputes every number from run JSONs and SUPPRESSES
+comparisons for any experiment that is not fully terminal (a table is read; a caveat is not).
+
 ## 2026-08-08 (midday) — branch matrix LAUNCHED on idle lanes; factorial 39/48 terminal
 
 Factorial: 48 reporting, 39 terminal, 9 still training (max step 75,750/120,000, ~1.5h).
