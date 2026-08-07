@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "devaxis checkpoint sidecar",
+  "type": "object",
+  "required": ["path", "step", "sha256", "nparam", "lr", "manifest_hash"],
+  "properties": {
+    "path": {"type": "string"},
+    "step": {"type": "integer", "minimum": 0},
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "nparam": {"type": "integer", "minimum": 1},
+    "lr": {"type": "number"},
+    "manifest_hash": {"type": "string"}
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "devaxis branch difference certificate",
+  "type": "object",
+  "required": ["parent_run_id", "child_run_id", "fork_step", "metric_drift_max",
+               "bitwise", "max_rel_param_div", "tier"],
+  "properties": {
+    "parent_run_id": {"type": "string"},
+    "child_run_id": {"type": "string"},
+    "fork_step": {"type": "integer"},
+    "eval_steps_compared": {"type": "array", "items": {"type": "integer"}},
+    "metric_drift_max": {"type": "number"},
+    "metrics_exact": {"type": "boolean"},
+    "bitwise": {"type": "boolean"},
+    "max_rel_param_div": {"type": "number"},
+    "tier": {"enum": ["T0", "T1", "T2", "FAIL"]}
+  }
+}

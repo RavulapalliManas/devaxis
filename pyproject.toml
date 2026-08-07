@@ -1,0 +1,23 @@
+[project]
+name = "devaxis"
+version = "0.1.0"
+description = "Developmental pretraining toolkit — Trainium slice (qualification gates + DD recurrence factorial)"
+requires-python = ">=3.10"
+dependencies = ["numpy>=1.24", "jsonschema>=4.17"]
+# torch is installed per-platform, never pinned here:
+#   cpu (cpu-angad):  pip install torch --index-url https://download.pytorch.org/whl/cpu
+#   neuron (trn1):    comes from the DLAMI venv (/opt/aws_neuronx_venv_pytorch_*) — do NOT pip install torch there.
+
+[project.optional-dependencies]
+dev = ["pytest>=7"]
+
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["schemas", "generators", "training", "diagnostics", "audit", "analysis"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["slow: detector-validation tests needing minutes of CPU training"]

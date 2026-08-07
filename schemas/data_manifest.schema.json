@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "devaxis data manifest (one per Phase-F condition)",
+  "type": "object",
+  "required": ["condition_id", "generator_version", "vocab", "task",
+               "recurrence", "spacing", "order", "golden_hashes"],
+  "properties": {
+    "condition_id": {"type": "string"},
+    "generator_version": {"type": "string"},
+    "vocab": {"type": "object"},
+    "task": {"type": "object"},
+    "recurrence": {"enum": ["none", "exact", "paraphrase", "structural"]},
+    "recurrence_rate": {"type": "number", "minimum": 0, "maximum": 1},
+    "spacing": {"enum": ["none", "short", "long"]},
+    "order": {"enum": ["fixed", "scrambled"]},
+    "golden_hashes": {
+      "type": "array",
+      "items": {"type": "object", "required": ["step", "sha256"],
+                "properties": {"step": {"type": "integer"},
+                               "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}}}
+    },
+    "intended_difference": {"type": "string"}
+  }
+}
