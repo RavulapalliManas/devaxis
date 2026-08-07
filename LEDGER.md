@@ -1,5 +1,44 @@
 # devaxis ledger
 
+## 2026-08-08 ~20:55Z — DEEP PROGRAM QUEUED (open-ended, extensible without restarts)
+
+Health verified: 4 units active, exactly 1 dispatcher, 26/26 tests green, factorial 49/49
+terminal, branch 21/21 (18 terminal, the 3 stragglers cannot change any conclusion).
+
+The critical-period result is real, so the next questions are the ones that turn a phenomenon
+into a mechanism. Queued in `PROGRAM.json`, executed by a new `devaxis-program` unit:
+
+**Phase W — WHERE is the window? (is this a critical PERIOD at all?)**
+Hold the insult FIXED (tau = 10,000 deprived steps) and move the AGE at which it lands:
+forks at 1k / 2k / 4k / 8k / 12k x 5 seeds = 25 runs. 8k-12k straddles the baseline emergence
+band (median 9,750), so some parents will ALREADY have the use circuit when deprivation hits —
+the most informative cell, since it asks whether a formed circuit survives what an unformed one
+cannot. Predictions declared: age-dependent = critical period; uniform = "damage, not a period";
+late-only = refutes the developmental framing outright.
+
+**Phase M — WHAT blocks the rescue?**
+Fork the DEPRIVED models and rescue four ways: plain (replication, must fail again),
+optimizer-reset (weights kept, Adam moments dropped), LR-rewarm (restart the warmup ramp), both.
+Declared interpretation: optreset rescues => the blocker is OPTIMIZER STATE; rewarm rescues =>
+it is the LR/landscape scale; NEITHER rescues => the block is in the WEIGHTS, which is the
+strongest and most interesting version. Engine gained `reset_optimizer` and `lr_rewarm` knobs,
+both default-off and regression-tested (26/26).
+
+**Phase D — DD10** (same data from two developmental states) carried over.
+
+**The runner itself is the deliverable that matters for "never run out of ideas":**
+`tools/program.py` reads its phase list from a FILE every iteration, so experiments can be
+appended at any time without restarting anything or killing a live dispatcher. It judges
+completion by diffing the QUEUE against the RESULTS (so a never-started job cannot hide, the
+failure that cost us 6 branch runs), keeps state in PROGRAM_STATE.json so a restart resumes
+rather than repeats, revives a dead dispatcher up to 5 times, abandons a stalled phase after 60
+min instead of blocking the night, and regenerates the morning report after EVERY phase so
+there is always a current answer.
+
+Sequencing race closed: the runner waits both for zero trainers AND for the overnight
+orchestrator to go inactive — between its phases the trainer count momentarily hits zero, and
+both runners would otherwise grab cores in that gap.
+
 ## 2026-08-08 ~20:35Z — RESULTS: factorial is a clean NULL; the critical period reaches p = 0.0078
 
 ### 1. DD factorial — COMPLETE (49/49 terminal) — NULL
