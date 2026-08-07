@@ -1,0 +1,13 @@
+{
+ "generators": {
+  "K4_D32_p1.0": "86c080c4fdb0a2754f45f622290a935a9927ddbed14b12f9c4503110fa5da3d6",
+  "K2_D8_p0.5": "8d1b702ff8271161f1c9b3bc11f5dc8820c9ac103498a7b08e61dde7bb14c793",
+  "eval_batch0": "91fdea3e19e96822e55764999a5e9fe82f1e76d218f6c23866695387e400047e"
+ },
+ "fp64_loss_trajectory": [
+  6.086320413759173,
+  5.989828506593602,
+  5.705049823275813
+ ],
+ "generator_version": "binding-1.0.0"
+}
