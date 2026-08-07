@@ -31,7 +31,8 @@ from diagnostics import battery
 COMPILE_PROBE = 500          # steps after which the graph set must be frozen (neuron)
 
 DEFAULTS = dict(logit_every=1000, ckpt_every=0, ckpt_at=[], stop_at=0.0, precision="fp32",
-                eval_n=512, eval_bs=128, allow_recompile=False, attn="mha", sync_every=1)
+                eval_n=512, eval_bs=128, allow_recompile=False, attn="mha", sync_every=1,
+                recompile_policy="warn")   # warn: record events; strict: crash (Q-gate runs)
 
 
 def manifest_hash(man: dict) -> str:
@@ -118,16 +119,25 @@ def run(man: dict, backend_name: str, mutate: str | None = None) -> dict:
             if loss_n:
                 ev["train_loss_mean"] = float(loss_acc.item()) / loss_n
                 loss_acc, loss_n = None, 0
-            if be.name == "neuron" and step >= step0 + COMPILE_PROBE:
+            if be.name == "neuron" and step >= step0 + max(COMPILE_PROBE, 2 * m["logit_every"]):
+                # Baseline only after every graph variant (train window, eval, eval+logit) has
+                # run at least twice — the counter also ticks on cache-hit compile events, so
+                # an early baseline fires on benign later-first-use graphs (measured: it killed
+                # healthy runs in wave 2).  Growth is TELEMETRY by default; per-eval steps/s
+                # already exposes real perf leaks.  Q-gate runs set recompile_policy=strict.
                 c = be.compile_count()
                 if compile_baseline is None:
                     compile_baseline = c
                     ev["compile_count"] = c
                 elif c is not None and c > compile_baseline and not m["allow_recompile"]:
-                    rec["failed"] = f"recompile after probe: {compile_baseline} -> {c}"
-                    with open(out_path, "w") as f:
-                        json.dump(rec, f)
-                    raise RuntimeError(rec["failed"] + "\n" + be.metrics().get("report", ""))
+                    rec.setdefault("recompile_events", []).append(
+                        dict(step=step, count_from=compile_baseline, count_to=c))
+                    compile_baseline = c
+                    if m["recompile_policy"] == "strict":
+                        rec["failed"] = f"recompile after probe: {c}"
+                        with open(out_path, "w") as f:
+                            json.dump(rec, f)
+                        raise RuntimeError(rec["failed"] + "\n" + be.metrics().get("report", ""))
             rec["evals"].append(ev)
             with open(out_path, "w") as f:
                 json.dump(rec, f)                        # incremental: a dead box costs one eval
