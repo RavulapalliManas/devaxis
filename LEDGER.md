@@ -1,5 +1,20 @@
 # devaxis ledger
 
+## 2026-08-08 — WAVE v3 LIVE AND VERIFIED HEALTHY
+
+Canary gate PASSED (8/8 finite losses, max_recap 1.000) -> wave started under `devaxis-wave`.
+MEASURED at ~5 min in: 32 runs, 8.28-8.42 steps/s each, aggregate 276 steps/s, 0 crashes,
+0 failures, 0 NaN.  Canary at step 2000: recap 0.999, loss 0.192, query_ctx 0.234 (chance
+0.250) — read circuit saturated, use circuit not yet emerged: the reference developmental
+pattern, on Neuron, for the first time.
+
+One more trap found and fixed on the way: a dispatcher spawned from the Type=oneshot launcher
+was killed when that unit finished (systemd KillMode=control-group; start_new_session detaches
+the session, not the cgroup).  The wave now runs under its own long-lived unit and the
+launcher only gates (`d0cf737`).
+
+ETA: 120k-step censored run ~4 h; 50 jobs over 32 lanes ~8 h wall, less as runs early-stop.
+
 ## 2026-08-08 — ROOT CAUSE: the -inf attention mask NaN'd every Neuron run
 
 **The failure.** The v2 wave ran 32 cores for hours at 8.4 steps/s producing **NaN loss and
