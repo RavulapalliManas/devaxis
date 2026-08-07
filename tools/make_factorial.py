@@ -23,13 +23,17 @@ from generators import binding, keys, recurrence
 from generators.binding import Vocab
 from schemas.validate import validate_manifest, validate_data_manifest
 
-# v2 (wave relaunch, user-directed): sync_every=25 (dispatch amortization; equivalence pair
-# embedded as the first two lane jobs), 5 seeds/cell.  v1 (3 seeds, sync_every=1) aborted at
-# ~2h; identical data streams mean v2 re-traverses the same bytes — nothing scientific lost.
+# v3 (2026-08-08): mask_value="finite" — the -inf causal mask NaN'd EVERY Neuron run at
+# ctx=54 (9-arm bisect: only finite-mask arms trained; ctx=22 masked the bug in Q0 smoke).
+# health_gate kills a run whose read circuit is flat by step 2000 instead of burning a core.
+# sync_every back to 1 (the windowed engine crashed the compiler under 32-way parallel launch;
+# and the measured 17x came from NEFF cache warmth, not windowing).  5 seeds/cell.
 BASE = dict(task=dict(K=4, D=32), model=dict(d=256, nl=6, nh=8), bs=128,
             lr=3e-3, wd=0.1, warmup=500, p_schedule="1.0", steps=120000,
             eval_every=250, logit_every=1000, stop_at=0.90,
-            ckpt_every=4000, ckpt_at=[1000, 2000, 3000], sync_every=25)
+            ckpt_every=4000, ckpt_at=[1000, 2000, 3000], sync_every=1,
+            mask_value="finite",                       # -inf mask NaNs on Neuron at ctx=54
+            health_gate=dict(step=2000, min_recap=0.5))  # reference: recap saturates by 500
 RATE, POOL = 0.25, 64
 SEEDS = [0, 1, 2, 3, 4]
 BASELINE_SEEDS = list(range(8))
@@ -78,10 +82,11 @@ def main():
 
     assert len(runs) == 48, len(runs)
     # sync_every equivalence pair: same stream, 1-step vs 25-step engine, first on lanes 0/1.
-    val = [dict(BASE, run_id=f"syncval_{n}", init_seed=0, sync_every=se, steps=3000,
-                stop_at=0.0, ckpt_every=0, ckpt_at=[3000], out_dir="runs/factorial",
-                data_streams=[dict(from_step=0, stream_id="syncval")])
-           for n, se in (("1step", 1), ("25step", 25))]
+    # health canary: one short run whose only job is to prove the platform still trains this
+    # exact config before 48 cores commit to it.
+    val = [dict(BASE, run_id="canary", init_seed=0, steps=2000, stop_at=0.0,
+                ckpt_every=0, ckpt_at=[2000], out_dir="runs/factorial",
+                data_streams=[dict(from_step=0, stream_id="canary")])]
     for man in val:
         validate_manifest(man)
     queue = []
@@ -98,7 +103,7 @@ def main():
     with open(os.path.join(a.out, "queue.jsonl"), "w") as f:
         for q in queue:
             f.write(json.dumps(q) + "\n")
-    print(f"[factorial] {len(runs)} science + 2 syncval runs -> {a.out} (queue over {a.nproc} cores)")
+    print(f"[factorial] {len(runs)} science + {len(val)} canary -> {a.out} ({a.nproc} cores)")
 
 
 if __name__ == "__main__":

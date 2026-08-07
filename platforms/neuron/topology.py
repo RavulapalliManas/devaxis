@@ -45,6 +45,9 @@ def main():
     ap.add_argument("--queue", required=True)
     ap.add_argument("--max-retries", type=int, default=2)
     ap.add_argument("--poll", type=int, default=30)
+    ap.add_argument("--stagger", type=float, default=8.0,
+                    help="seconds between lane starts; prevents the compile storm that "
+                         "SIGHUP'd neuronx-cc when 32 processes compiled simultaneously")
     a = ap.parse_args()
 
     jobs = [json.loads(l) for l in open(a.queue) if l.strip()]
@@ -78,12 +81,14 @@ def main():
         active[core] = (i, p)
         print(f"[topology] core {core}: launched job {i} (pid {p.pid})", flush=True)
 
-    for core in sorted(lanes):
+    for n, core in enumerate(sorted(lanes)):
         if os.path.exists("STOP_NEW"):
             print("[topology] STOP_NEW present — launching nothing", flush=True)
             return
         i = next_pending(core)
         if i is not None:
+            if n:
+                time.sleep(a.stagger)
             launch(core, i)
 
     while active:

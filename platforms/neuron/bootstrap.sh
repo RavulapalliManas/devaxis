@@ -67,6 +67,16 @@ OnUnitActiveSec=10min
 [Install]
 WantedBy=timers.target
 UNIT
+sudo tee /etc/systemd/system/devaxis-wave.service > /dev/null <<UNIT
+[Unit]
+Description=devaxis factorial wave (canary-gated)
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/devaxis-work
+ExecStart=/bin/bash -lc 'source /home/ubuntu/devaxis-work/env.sh && exec python /home/ubuntu/devaxis/platforms/neuron/topology.py --queue /home/ubuntu/devaxis-work/factorial/queue.jsonl'
+Restart=no
+UNIT
 sudo tee /etc/systemd/system/devaxis-guard.service > /dev/null <<UNIT
 [Unit]
 Description=devaxis deadline guard

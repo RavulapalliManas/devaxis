@@ -120,6 +120,16 @@ def run(man: dict, backend_name: str, mutate: str | None = None) -> dict:
             if loss_n:
                 ev["train_loss_mean"] = float(loss_acc.item()) / loss_n
                 loss_acc, loss_n = None, 0
+                # HEALTH GATE 1 — NaN loss.  A run that cannot compute a finite loss is
+                # producing nothing; it must die at the first eval, not after 36k steps.
+                # (Measured 2026-08-08: the -inf attention mask NaN'd every Neuron run at
+                # ctx=54 and the wave ran for hours before anyone read a loss value.)
+                if ev["train_loss_mean"] != ev["train_loss_mean"]:
+                    rec["failed"] = f"nan_loss at step {step}"
+                    rec["evals"].append(ev)
+                    with open(out_path, "w") as f:
+                        json.dump(rec, f)
+                    raise RuntimeError(rec["failed"])
             if be.name == "neuron" and step >= step0 + max(COMPILE_PROBE, 2 * m["logit_every"]):
                 # Baseline only after every graph variant (train window, eval, eval+logit) has
                 # run at least twice — the counter also ticks on cache-hit compile events, so
@@ -139,6 +149,17 @@ def run(man: dict, backend_name: str, mutate: str | None = None) -> dict:
                         with open(out_path, "w") as f:
                             json.dump(rec, f)
                         raise RuntimeError(rec["failed"] + "\n" + be.metrics().get("report", ""))
+            # HEALTH GATE 2 — the read circuit.  The reference sweep saturates recap by step
+            # 500 in 45/45 runs, so a flat recap well past that is a broken run, not science.
+            hg = m.get("health_gate")
+            if hg and step >= hg["step"] and mm["recap"] < hg["min_recap"]:
+                rec["failed"] = (f"health gate: recap {mm['recap']:.3f} < {hg['min_recap']} "
+                                 f"at step {step}")
+                rec["evals"].append(ev)
+                with open(out_path, "w") as f:
+                    json.dump(rec, f)
+                raise RuntimeError(rec["failed"])
+
             rec["evals"].append(ev)
             with open(out_path, "w") as f:
                 json.dump(rec, f)                        # incremental: a dead box costs one eval
