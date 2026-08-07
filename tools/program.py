@@ -53,6 +53,15 @@ def save_state(st):
         json.dump(st, f, indent=1)
 
 
+def other_orchestrator_active():
+    """True while the older overnight orchestrator still owns the box.  Waiting on trainer
+    count alone is not enough: between its phases the count momentarily hits zero, and both
+    runners would grab cores in that gap."""
+    r = subprocess.run(["systemctl", "is-active", "devaxis-overnight"],
+                       capture_output=True, text=True)
+    return r.stdout.strip() == "active"
+
+
 def trainers():
     out = subprocess.run(["pgrep", "-fc", "training[.]train"], capture_output=True, text=True)
     try:
@@ -166,8 +175,9 @@ def main():
             report()
             time.sleep(600)
             continue
-        while trainers() > 0 and st.get("__wait_for_idle__", True):
-            log(f"waiting for {trainers()} trainers from another wave to finish")
+        while trainers() > 0 or other_orchestrator_active():
+            log(f"waiting: {trainers()} trainers, overnight active="
+                f"{other_orchestrator_active()}")
             time.sleep(POLL)
             if os.path.exists(os.path.join(WORK, "STOP_NEW")):
                 log("STOP_NEW while waiting — exiting")
