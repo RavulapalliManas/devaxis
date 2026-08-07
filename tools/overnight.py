@@ -38,11 +38,18 @@ def py(*args, **kw):
 
 
 def running_count():
-    out = subprocess.run(["pgrep", "-fc", "-m", "training.train"], capture_output=True, text=True)
+    """Live trainers.  MUST be correct: the revive logic reads it, and an undercount would
+    spawn a second dispatcher on the same queue = two writers per output file.  Verified
+    2026-08-08 against `pgrep -fc` on the box (an earlier `-m` flag made this always 0)."""
+    out = subprocess.run(["pgrep", "-fc", "-m", "training[.]train"],
+                         capture_output=True, text=True)
+    if out.returncode not in (0, 1):                     # bad flags -> refuse to guess
+        out = subprocess.run(["pgrep", "-fc", "training[.]train"],
+                             capture_output=True, text=True)
     try:
         return int(out.stdout.strip() or 0)
     except ValueError:
-        return 0
+        return -1                                        # unknown: never used to declare death
 
 
 def runs_state(run_dir):
@@ -89,7 +96,11 @@ def wait_drain(run_dir, expect, label, queue=None, proc=None, max_revive=5):
             log(f"[{label}] COMPLETE")
             return True
 
-        dead = (proc is not None and proc.poll() is not None) or (live == 0 and tot < expect)
+        # Revive ONLY a dispatcher we own and have watched exit.  Waves owned by their own
+        # systemd unit are supervised there; reviving those from here would put two
+        # dispatchers on one queue (two writers per run file).  live==0 alone is NOT
+        # sufficient evidence of death — it was wrong once already.
+        dead = proc is not None and proc.poll() is not None
         if dead and queue and revived < max_revive:
             revived += 1
             log(f"[{label}] dispatcher not running with work left "
@@ -146,10 +157,8 @@ def main():
 
     # Phase 0 — let the waves already in flight finish.
     log("[wait] draining factorial + branch matrix (revivable)")
-    wait_drain("runs/factorial", 48, "factorial",
-               queue=f"{WORK}/factorial/queue.jsonl")
-    wait_drain("runs/branch", 21, "branch",
-               queue=f"{WORK}/branchmx/queue.jsonl")
+    wait_drain("runs/factorial", 48, "factorial")     # owned by devaxis-wave.service
+    wait_drain("runs/branch", 21, "branch")           # owned by devaxis-branch.service
     sync()
     results.append(dict(phase="factorial+branch", status="drained"))
 
