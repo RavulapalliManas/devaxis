@@ -1,0 +1,18 @@
+{
+  "run_id": "q3",
+  "init_seed": 0,
+  "task": {"K": 2, "D": 8},
+  "model": {"d": 64, "nl": 2, "nh": 4},
+  "bs": 32,
+  "lr": 0.003,
+  "wd": 0.1,
+  "warmup": 100,
+  "p_schedule": "1.0",
+  "steps": 200,
+  "eval_every": 10,
+  "eval_n": 64,
+  "eval_bs": 32,
+  "ckpt_at": [100, 200],
+  "data_streams": [{"from_step": 0, "stream_id": "q3data"}],
+  "out_dir": "runs/q3"
+}
