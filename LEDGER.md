@@ -1,5 +1,33 @@
 # devaxis ledger
 
+## 2026-08-07 (Day 1, late) — box LIVE, G0 complete
+
+**Last:**
+- 🚀 `i-0c6939e339ff4192e` (trn1.32xlarge) launched into `cr-0d45dc9efdb38c384` (Sam OK'd,
+  user executed the launch command). Bootstrap v2 complete: plain `pytorch_2_8` venv pinned
+  (torch 2.8 on this AMI, NOT 2.9 — risk #1 resolved by checking on box), env in
+  `~/devaxis-work/env.sh` (DLAMI ships `.bashrc` root-owned — documented quirk), sync timer +
+  deadline guard live from first boot. Neuron compiler `neuronxcc-2.23.6484.0`.
+- **Q0 preflight PASS [MEASURED]:** 16 devices/32 cores; bf16 matmul value-correct; 155.5 GB
+  disk; S3 write-read-back; 384.4 h left; 32-rank all-reduce == 496.0 exactly; compile cache
+  serving cached NEFFs. Gate JSON: `gates/q0_preflight.json` (synced to S3 by the timer).
+- **G0 measurement gate COMPLETE: 18/18 tests green.** Slow suite passed after two honest
+  iterations: (1) emergence is stochastic ACROSS DATA STREAMS at fixed seed → clean arm pinned
+  to measured-emergent stream `probe_small_s0`; (2) offset −1 is NOT a valid position mutation —
+  answer partially decodable at the entity token (0.695 vs chance 0.5, represent-before-use);
+  offset −2 (QMARK, query not yet revealed) is information-theoretically chance (measured
+  0.4375). Detectors validated: constant_loss, detached_head, random_labels (srand 0.531 ≈
+  chance while pinned clean 1.0), wrong_eval_position (good 0.984 / off 0.4375).
+- **Probe complete (6 arms, 12k budget):** dense vocab emerged 2/3 (1500, 4800), default 1/3
+  (4500), rest censored — calibrates Phase-F seed counts.
+- Mistake logged: first probe launch ran python from /tmp on cpu-angad and hit the documented
+  `/tmp/inspect.py` shadow — all 6 arms crashed at import; relaunched from `~/devaxis/tools/`.
+
+**Next:** Q0 train smoke (in flight) → Q1 `bench_topology` {1,8,16,24,32} → Q2 no-op branch on
+neuron (T1) → Q3 neuron legs vs the CPU yardstick (≤1.8e-05 / ≤2.5e-03) → Q4 8-seed baseline.
+
+**Blockers:** none. (Linear/Slite still owed pending OAuth.)
+
 ## 2026-08-07 (Day 1) — evening close
 
 **Last:**
