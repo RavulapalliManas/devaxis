@@ -76,6 +76,8 @@ User=ubuntu
 WorkingDirectory=/home/ubuntu/devaxis-work
 ExecStart=/bin/bash -lc 'source /home/ubuntu/devaxis-work/env.sh && exec python /home/ubuntu/devaxis/platforms/neuron/topology.py --queue /home/ubuntu/devaxis-work/factorial/queue.jsonl'
 Restart=no
+KillMode=mixed
+TimeoutStopSec=60
 UNIT
 sudo tee /etc/systemd/system/devaxis-guard.service > /dev/null <<UNIT
 [Unit]

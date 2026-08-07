@@ -58,12 +58,12 @@ def main():
             sys.exit(3)
         print("[launch] canary HEALTHY — compile cache warm, starting wave", flush=True)
 
-    os.makedirs("logs", exist_ok=True)
-    log = open("logs/topology_wave.log", "a")
-    p = subprocess.Popen([sys.executable, os.path.join(here, "platforms", "neuron", "topology.py"),
-                          "--queue", os.path.join(a.out, "queue.jsonl")],
-                         stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
-    print(f"[launch] wave dispatcher pid {p.pid} -> logs/topology_wave.log", flush=True)
+    # The dispatcher is NOT spawned here.  A child spawned from a Type=oneshot unit is killed
+    # when that unit finishes (systemd KillMode=control-group), which silently took down the
+    # whole wave on 2026-08-08 — start_new_session() detaches the session, not the cgroup.
+    # The wave runs under its own long-lived unit; this script only gates it.
+    print("[launch] canary gate PASSED — start the wave with: systemctl start devaxis-wave",
+          flush=True)
 
 
 if __name__ == "__main__":
