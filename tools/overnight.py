@@ -64,9 +64,17 @@ def runs_state(run_dir):
     return term, tot, mx
 
 
-def wait_drain(run_dir, expect, label):
-    """Wait until every launched run in run_dir is terminal, or progress stalls."""
+def wait_drain(run_dir, expect, label, queue=None, proc=None, max_revive=5):
+    """Wait until every launched run in run_dir is terminal, or progress stalls.
+
+    SELF-HEALING: the dangerous failure is a dispatcher that dies while work remains — the
+    cores go idle and a naive waiter blocks until the stall timeout.  So if the dispatcher has
+    exited (or no training process is alive) while runs are still incomplete, relaunch it.
+    Relaunch is safe and idempotent: the dispatcher reads each job's state from its run JSON
+    and skips anything already done, and partial runs simply restart from their own state.
+    """
     last_sig, last_change = None, time.time()
+    revived = 0
     while True:
         if os.path.exists(os.path.join(WORK, "STOP_NEW")):
             log(f"[{label}] STOP_NEW present — aborting wait")
@@ -80,6 +88,17 @@ def wait_drain(run_dir, expect, label):
         if tot >= expect and term >= expect:
             log(f"[{label}] COMPLETE")
             return True
+
+        dead = (proc is not None and proc.poll() is not None) or (live == 0 and tot < expect)
+        if dead and queue and revived < max_revive:
+            revived += 1
+            log(f"[{label}] dispatcher not running with work left "
+                f"(live={live}, terminal={term}/{expect}) — REVIVING ({revived}/{max_revive})")
+            proc = launch(queue, label)
+            last_change = time.time()
+            time.sleep(POLL)
+            continue
+
         if time.time() - last_change > STALL_MIN * 60:
             log(f"[{label}] STALLED {STALL_MIN} min with no progress — moving on")
             return False
@@ -108,7 +127,7 @@ def phase(label, builder_args, queue, run_dir, expect):
             if r.returncode != 0:
                 return dict(phase=label, status="BUILD_FAILED", err=r.stderr[-500:])
         p = launch(queue, label)
-        ok = wait_drain(run_dir, expect, label)
+        ok = wait_drain(run_dir, expect, label, queue=queue, proc=p)
         if p.poll() is None:
             p.terminate()
         sync()
@@ -126,9 +145,11 @@ def main():
     log("=== OVERNIGHT PROGRAM START ===")
 
     # Phase 0 — let the waves already in flight finish.
-    log("[wait] draining factorial + branch matrix")
-    wait_drain("runs/factorial", 48, "factorial")
-    wait_drain("runs/branch", 21, "branch")
+    log("[wait] draining factorial + branch matrix (revivable)")
+    wait_drain("runs/factorial", 48, "factorial",
+               queue=f"{WORK}/factorial/queue.jsonl")
+    wait_drain("runs/branch", 21, "branch",
+               queue=f"{WORK}/branchmx/queue.jsonl")
     sync()
     results.append(dict(phase="factorial+branch", status="drained"))
 
