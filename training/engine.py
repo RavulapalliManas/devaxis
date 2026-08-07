@@ -20,7 +20,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
-from generators import binding, keys
+from generators import binding, keys, recurrence
 from generators.binding import Vocab, seq_len
 from training.model import GPT, nparam
 from training import checkpoint
@@ -145,8 +145,13 @@ def run(man: dict, backend_name: str, mutate: str | None = None) -> dict:
         if step == steps:
             break
 
-        rng = keys.key(stream_id_for(streams, step), "train", step)
-        b = binding.build_batch(m["bs"], K, D, p_at(sched, step), rng, v)
+        sid = stream_id_for(streams, step)
+        if m.get("condition"):
+            b = recurrence.build_condition_batch(m["condition"], m["bs"], K, D,
+                                                 p_at(sched, step), sid, step, v)
+        else:
+            b = binding.build_batch(m["bs"], K, D, p_at(sched, step),
+                                    keys.key(sid, "train", step), v)
         ids = torch.from_numpy(b["ids"]).to(dev)
         tgt = torch.from_numpy(b["tgt"]).to(dev)
         if mutate == "random_labels":

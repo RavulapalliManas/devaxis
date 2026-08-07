@@ -36,6 +36,12 @@
                      "items": {"type": "object", "required": ["from_step", "stream_id"],
                                "properties": {"from_step": {"type": "integer"},
                                               "stream_id": {"type": "string"}}}},
+    "condition": {"type": "object",
+                  "properties": {"recurrence": {"enum": ["none", "exact", "paraphrase"]},
+                                 "rate": {"type": "number", "exclusiveMinimum": 0, "maximum": 1},
+                                 "pool_size": {"type": "integer", "minimum": 1},
+                                 "interval": {"type": "integer", "minimum": 1},
+                                 "order": {"enum": ["fixed", "scrambled"]}}},
     "allow_recompile": {"type": "boolean"},
     "audit_mode": {"type": "boolean"},
     "out_dir": {"type": "string"}

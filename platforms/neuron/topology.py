@@ -1,10 +1,12 @@
-"""Wave dispatcher: N independent single-core training processes, one NeuronCore each.
+"""Wave dispatcher: independent single-core training processes, one NeuronCore per LANE.
 
 queue.jsonl lines: {"manifest": "path.json", "core": 7, "overrides": ["run_id=x", ...]}
-Each job runs `python -m training.train --manifest ... --backend neuron` with
-NEURON_RT_VISIBLE_CORES=<core>.  A core is never reassigned mid-run; a crashed job is restarted
-in place up to --max-retries; state is read from the filesystem (run JSON done/failed flags),
-never from queue position (H100-playbook rule: count n from files)."""
+Jobs sharing a core form a lane and run SEQUENTIALLY (never concurrently on one core).
+Each job runs `python -m training.train --backend neuron` under NEURON_RT_VISIBLE_CORES=<core>.
+A crashed job is retried in place up to --max-retries (it resumes from its own run state).
+Job state is read from the filesystem (run JSON done/failed flags), never from queue position.
+A STOP_NEW file (deadline guard) stops new launches; running jobs finish or get the guard's
+SIGTERM."""
 from __future__ import annotations
 import argparse
 import json
@@ -14,17 +16,20 @@ import sys
 import time
 
 
-def job_state(man_path: str, overrides: list[str]) -> str:
+def run_paths(man_path: str, overrides: list[str]) -> str:
     man = json.load(open(man_path))
-    run_id = man["run_id"]
-    out_dir = man["out_dir"]
+    run_id, out_dir = man["run_id"], man["out_dir"]
     for kv in overrides:
-        k, v = kv.split("=", 1)
+        k, val = kv.split("=", 1)
         if k == "run_id":
-            run_id = v
+            run_id = val
         if k == "out_dir":
-            out_dir = v
-    p = os.path.join(out_dir, f"{run_id}.json")
+            out_dir = val
+    return os.path.join(out_dir, f"{run_id}.json")
+
+
+def job_state(man_path: str, overrides: list[str]) -> str:
+    p = run_paths(man_path, overrides)
     if not os.path.exists(p):
         return "pending"
     rec = json.load(open(p))
@@ -43,59 +48,68 @@ def main():
     a = ap.parse_args()
 
     jobs = [json.loads(l) for l in open(a.queue) if l.strip()]
-    cores = [j["core"] for j in jobs]
-    assert len(cores) == len(set(cores)), "one core per job — duplicate core in queue"
+    lanes: dict[int, list[int]] = {}
+    for i, j in enumerate(jobs):
+        lanes.setdefault(j["core"], []).append(i)
 
-    procs: dict[int, subprocess.Popen] = {}
+    os.makedirs("logs", exist_ok=True)
     retries = {i: 0 for i in range(len(jobs))}
-    live = set(range(len(jobs)))
+    active: dict[int, tuple[int, subprocess.Popen]] = {}
 
-    for i in sorted(live):
-        j = jobs[i]
-        if job_state(j["manifest"], j.get("overrides", [])) == "done":
-            print(f"[topology] job {i} already done, skipping", flush=True)
-            live.discard(i)
+    def next_pending(core) -> int | None:
+        while lanes[core]:
+            i = lanes[core][0]
+            if job_state(jobs[i]["manifest"], jobs[i].get("overrides", [])) == "done":
+                print(f"[topology] job {i} already done, skipping", flush=True)
+                lanes[core].pop(0)
+                continue
+            return i
+        return None
 
-    def launch(i):
+    def launch(core, i):
         j = jobs[i]
-        env = dict(os.environ, NEURON_RT_VISIBLE_CORES=str(j["core"]))
+        env = dict(os.environ, NEURON_RT_VISIBLE_CORES=str(core))
         cmd = [sys.executable, "-m", "training.train", "--manifest", j["manifest"],
                "--backend", "neuron"]
         for kv in j.get("overrides", []):
             cmd += ["--set", kv]
-        log = open(f"logs/job{i}_core{j['core']}.log", "a")
-        procs[i] = subprocess.Popen(cmd, env=env, stdout=log, stderr=subprocess.STDOUT)
-        print(f"[topology] launched job {i} on core {j['core']} pid {procs[i].pid}", flush=True)
+        log = open(f"logs/job{i}_core{core}.log", "a")
+        p = subprocess.Popen(cmd, env=env, stdout=log, stderr=subprocess.STDOUT)
+        active[core] = (i, p)
+        print(f"[topology] core {core}: launched job {i} (pid {p.pid})", flush=True)
 
-    os.makedirs("logs", exist_ok=True)
-    for i in sorted(live):
+    for core in sorted(lanes):
         if os.path.exists("STOP_NEW"):
-            print("[topology] STOP_NEW present — not launching", flush=True)
+            print("[topology] STOP_NEW present — launching nothing", flush=True)
             return
-        launch(i)
+        i = next_pending(core)
+        if i is not None:
+            launch(core, i)
 
-    while any(i in procs for i in live):
+    while active:
         time.sleep(a.poll)
-        if os.path.exists("STOP_NEW"):
-            print("[topology] STOP_NEW — waiting for running jobs, launching nothing", flush=True)
-        for i in list(live):
-            p = procs.get(i)
-            if p is None or p.poll() is None:
+        for core in list(active):
+            i, p = active[core]
+            if p.poll() is None:
                 continue
+            del active[core]
             if p.returncode == 0:
-                print(f"[topology] job {i} DONE", flush=True)
-                live.discard(i)
-                procs.pop(i)
+                print(f"[topology] core {core}: job {i} DONE", flush=True)
+                lanes[core].pop(0)
             elif retries[i] < a.max_retries and not os.path.exists("STOP_NEW"):
                 retries[i] += 1
-                print(f"[topology] job {i} crashed (rc={p.returncode}), retry {retries[i]}",
-                      flush=True)
-                launch(i)                        # same core, resume from its own run state
+                print(f"[topology] core {core}: job {i} crashed rc={p.returncode}, "
+                      f"retry {retries[i]}", flush=True)
+                launch(core, i)
+                continue
             else:
-                print(f"[topology] job {i} FAILED permanently", flush=True)
-                live.discard(i)
-                procs.pop(i)
-    print("[topology] wave complete", flush=True)
+                print(f"[topology] core {core}: job {i} FAILED permanently", flush=True)
+                lanes[core].pop(0)
+            if not os.path.exists("STOP_NEW"):
+                nxt = next_pending(core)
+                if nxt is not None:
+                    launch(core, nxt)
+    print("[topology] all lanes drained", flush=True)
 
 
 if __name__ == "__main__":
