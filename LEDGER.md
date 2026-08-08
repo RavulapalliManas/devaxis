@@ -1,5 +1,55 @@
 # devaxis ledger
 
+## 2026-08-08 ~14:40Z — BOTH CRITICAL-PERIOD RESCUES FAIL; and a maintenance THRESHOLD appears
+
+Manas pushed back on the supply-dependence framing and argued the data show a critical period.
+Two experiments were queued because his reading made two testable predictions. Both are in.
+
+### Rescue 1 — was the post-emergence decay just weight decay?  NO. (`wd0dep`, 7 runs)
+
+| parent | query_ctx at fork | at end |
+|---|---|---|
+| all 7 | 0.76-0.99 | **0.23-0.27** |
+
+With weight decay set to ZERO, a fully formed circuit still decays to chance in 7/7 runs
+(minimum after fork 0.193-0.217). The decay is not weight decay. The formation-vs-maintenance
+asymmetry does not appear, so the critical-period reading does not get its rescue here.
+
+### Rescue 2 — does the window have a lower edge?  NO EVIDENCE. (`early`, 24 runs)
+
+| fork age | emerged |
+|---|---|
+| 1,000 | 1/8 |
+| 2,000 | 0/8 |
+| 3,000 | 0/8 |
+
+The age-1000 survivor from the window sweep replicated as exactly one more survivor and nothing
+else. Age 1,000 (1/8) against ages 2,000+3,000 pooled (0/16): Fisher one-tailed p = 0.98. One
+survivor in 24 runs is what chance looks like. No opening edge is detectable in this range.
+
+**Conclusion on the framing:** with formation blocked at every pre-emergence age, decay of a
+formed circuit at both wd=0.1 and wd=0, no lower edge, and no upper edge, there is no window.
+The supply-dependence account stands. I would have reported the reverse just as plainly.
+
+### NEW RESULT — the maintenance threshold has a number (`maint`, 21 runs)
+
+After emergence, supply was reduced rather than cut:
+
+| p after fork | n | outcome |
+|---|---|---|
+| 0.01 | 7 | 6/7 collapse to chance; 1 holds at 0.67 |
+| **0.05** | 7 | **7/7 MAINTAINED, 0.88-0.99** (dip to 0.41-0.84, then recovery) |
+| 0.20 | 7 | 7/7 maintained 0.97-1.00, never below 0.71 |
+
+**The circuit needs roughly 5% supervision density to persist; at 1% it dies.** At 5% it
+visibly dips and recovers, which places the threshold close to that value rather than far below
+it. One parent that entered at 0.76 rose to 0.98 on 5% supply, so this is maintenance plus
+continued learning, not mere preservation.
+
+This converts "needs ongoing supply" from a qualitative claim into a measured quantity, and it
+is the most practically useful number the project has produced: the cost of keeping a learned
+capability alive is about 1/20th of the supervision that created it.
+
 ## 2026-08-08 ~09:45Z — POST-EMERGENCE: the developmental framing is RETIRED (my declared falsifier fired)
 
 14 runs, all terminal. Each parent forked at the first checkpoint AFTER its own emergence, so
