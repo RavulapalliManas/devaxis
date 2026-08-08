@@ -19,6 +19,7 @@ Rules, all learned from failures today:
   * the morning report is regenerated after every phase, so there is always a current answer.
 """
 from __future__ import annotations
+import glob
 import json
 import os
 import subprocess
@@ -68,6 +69,21 @@ def trainers():
         return int(out.stdout.strip() or 0)
     except ValueError:
         return 0
+
+
+def progress_sig(run_dir):
+    """Sum of last-eval steps across the phase's run JSONs.  The stall detector keys on THIS,
+    not on the pending-count: a phase of 8-hour runs has no terminal events for hours, and on
+    2026-08-08 the count-based detector declared healthy K=8 baselines STALLED and killed
+    their dispatcher (trainers survived orphaned, with no retry coverage)."""
+    tot = 0
+    for p in glob.glob(os.path.join(WORK, run_dir, "*.json")):
+        try:
+            ev = json.load(open(p)).get("evals") or []
+            tot += ev[-1]["step"] if ev else 0
+        except Exception:
+            pass          # mid-write file: excluded this poll; erring on not-stalling
+    return tot
 
 
 def pending(queue, run_dir):
@@ -128,7 +144,7 @@ def run_phase(ph):
                              os.path.join(DEVAXIS, "platforms/neuron/topology.py"),
                              "--queue", queue], cwd=WORK, stdout=logf,
                             stderr=subprocess.STDOUT)
-    last, changed, revived = None, time.time(), 0
+    last, last_sig, changed, revived = None, None, time.time(), 0
     while True:
         if os.path.exists(os.path.join(WORK, "STOP_NEW")):
             log(f"[{name}] STOP_NEW — stopping")
@@ -140,9 +156,11 @@ def run_phase(ph):
             if proc.poll() is None:
                 proc.terminate()
             return dict(name=name, status="OK")
-        if len(left) != last:
-            last, changed = len(left), time.time()
-            log(f"[{name}] {len(left)} left, {trainers()} trainers")
+        sig = progress_sig(run_dir)
+        if len(left) != last or sig != last_sig:
+            if len(left) != last:
+                log(f"[{name}] {len(left)} left, {trainers()} trainers")
+            last, last_sig, changed = len(left), sig, time.time()
         if proc.poll() is not None and revived < 5:
             revived += 1
             log(f"[{name}] dispatcher exited with {len(left)} left — reviving ({revived}/5)")

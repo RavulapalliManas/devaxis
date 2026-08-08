@@ -6,7 +6,13 @@ Each job runs `python -m training.train --backend neuron` under NEURON_RT_VISIBL
 A crashed job is retried in place up to --max-retries (it resumes from its own run state).
 Job state is read from the filesystem (run JSON done/failed flags), never from queue position.
 A STOP_NEW file (deadline guard) stops new launches; running jobs finish or get the guard's
-SIGTERM."""
+SIGTERM.
+
+LAUNCH-TIME CORE GUARD (2026-08-09): a core held by a FOREIGN trainer (another wave's process)
+is not launched onto — the lane waits and retries each poll.  Build-time free-core checks are
+not enough: two builders run seconds apart see the same free list and assign overlapping lanes,
+and the collision losers die at device init leaving no run record (8 jobs lost this way when
+devaxis-tomo and devaxis-k2post10k launched together)."""
 from __future__ import annotations
 import argparse
 import json
@@ -40,6 +46,23 @@ def job_state(man_path: str, overrides: list[str]) -> str:
     return "partial"
 
 
+def foreign_holder(core: int, own_pids: set[int]) -> bool:
+    """True if a trainer OUTSIDE this dispatcher currently holds the core."""
+    out = subprocess.run(["pgrep", "-f", "training[.]train"],
+                         capture_output=True, text=True).stdout.split()
+    for pid in out:
+        try:
+            if int(pid) in own_pids:
+                continue
+            env = open(f"/proc/{pid}/environ", "rb").read().decode(errors="ignore").split("\0")
+            for x in env:
+                if x.startswith("NEURON_RT_VISIBLE_CORES=") and int(x.split("=", 1)[1]) == core:
+                    return True
+        except Exception:
+            continue
+    return False
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--queue", required=True)
@@ -58,6 +81,7 @@ def main():
     os.makedirs("logs", exist_ok=True)
     retries = {i: 0 for i in range(len(jobs))}
     active: dict[int, tuple[int, subprocess.Popen]] = {}
+    waiting_note: set[int] = set()
 
     def next_pending(core) -> int | None:
         while lanes[core]:
@@ -79,20 +103,37 @@ def main():
         log = open(f"logs/job{i}_core{core}.log", "a")
         p = subprocess.Popen(cmd, env=env, stdout=log, stderr=subprocess.STDOUT)
         active[core] = (i, p)
+        waiting_note.discard(core)
         print(f"[topology] core {core}: launched job {i} (pid {p.pid})", flush=True)
 
-    for n, core in enumerate(sorted(lanes)):
-        if os.path.exists("STOP_NEW"):
-            print("[topology] STOP_NEW present — launching nothing", flush=True)
-            return
-        i = next_pending(core)
-        if i is not None:
-            if n:
+    while True:
+        # launch pass: any lane with work, no active process, and an unheld core
+        if not os.path.exists("STOP_NEW"):
+            own = {p.pid for _, p in active.values()}
+            for core in sorted(lanes):
+                if core in active:
+                    continue
+                i = next_pending(core)
+                if i is None:
+                    continue
+                if foreign_holder(core, own):
+                    if core not in waiting_note:
+                        print(f"[topology] core {core}: held by a foreign trainer — waiting",
+                              flush=True)
+                        waiting_note.add(core)
+                    continue
+                launch(core, i)
                 time.sleep(a.stagger)
-            launch(core, i)
 
-    while active:
+        if not active:
+            if os.path.exists("STOP_NEW"):
+                print("[topology] STOP_NEW and nothing active — exiting", flush=True)
+                return
+            if all(next_pending(c) is None for c in lanes):
+                break
         time.sleep(a.poll)
+
+        # reap pass
         for core in list(active):
             i, p = active[core]
             if p.poll() is None:
@@ -105,15 +146,9 @@ def main():
                 retries[i] += 1
                 print(f"[topology] core {core}: job {i} crashed rc={p.returncode}, "
                       f"retry {retries[i]}", flush=True)
-                launch(core, i)
-                continue
             else:
                 print(f"[topology] core {core}: job {i} FAILED permanently", flush=True)
                 lanes[core].pop(0)
-            if not os.path.exists("STOP_NEW"):
-                nxt = next_pending(core)
-                if nxt is not None:
-                    launch(core, nxt)
     print("[topology] all lanes drained", flush=True)
 
 
