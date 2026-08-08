@@ -14,7 +14,10 @@ import argparse, json, os, subprocess
 
 BASE = dict(model=dict(d=256, nl=6, nh=8), bs=128, lr=3e-3, wd=0.1, warmup=500,
             p_schedule="1.0", steps=120000, eval_every=250, logit_every=1000, stop_at=0.90,
-            mask_value="finite", ckpt_every=4000, ckpt_at=[1000, 2000, 3000],
+            # ckpt_every=8000 (not 4000): 16 runs x 120k at 4000 would be ~28G of the 50G
+            # left on disk; dense early ckpt_at covers the pre-emergence fork ages the tau
+            # sweeps actually need
+            mask_value="finite", ckpt_every=8000, ckpt_at=[1000, 2000, 3000, 4000, 6000],
             health_gate=dict(step=2000, min_recap=0.5))
 
 
