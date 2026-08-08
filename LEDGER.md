@@ -1,5 +1,41 @@
 # devaxis ledger
 
+## 2026-08-08 ~09:45Z — POST-EMERGENCE: the developmental framing is RETIRED (my declared falsifier fired)
+
+14 runs, all terminal. Each parent forked at the first checkpoint AFTER its own emergence, so
+every fork starts from a model that demonstrably HAS the use circuit.
+
+| arm | n | query_ctx at fork | query_ctx at end | outcome |
+|---|---|---|---|---|
+| postdep (p = 0 permanently) | 7 | 0.758-0.992 | **0.230-0.264** | decays to chance, 7/7 |
+| postresc (p = 0 for 10k, then p = 1) | 7 | 0.758-0.992 | **0.254-0.289** | decays AND does not recover, 7/7 |
+
+I declared before running: persistence would give a formation-vs-maintenance ASYMMETRY;
+decay-without-recovery would retire the developmental framing in favour of plain
+supply-dependence. **The second happened, in 7/7 and 7/7.**
+
+**So the correct account is not a critical period and not a developmental window.** It is:
+
+  The use circuit exists only while its supervision is supplied. Cut the supply and it decays
+  to chance even from 0.99 accuracy. Restore the supply and it does not come back — the same
+  irreversibility that blocks formation also blocks recovery.
+
+Note what "deprivation" means here: training CONTINUES, on the recap objective, which stays
+supervised (recap = 1.000 throughout). So this is destructive interference from continued
+training on a related objective, not idle decay.
+
+This unifies the earlier results rather than contradicting them. Formation and maintenance fail
+the same way, for what is presumably the same reason: without its gradient, the sub-circuit's
+parameters drift to a configuration from which gradient descent on that objective cannot
+recover the function. Already excluded as causes: weight decay (wd = 0 replication),
+optimizer state, and learning-rate scale.
+
+**Queued (phase N) because the decay needs its own controls:**
+- `wd0dep`: post-emergence deprivation with wd = 0. The wd=0 test covered FORMATION; decay of an
+  existing circuit is a different quantity and the postem runs inherited wd = 0.1.
+- `maint{001,005,020}`: after emergence, drop p to 0.01 / 0.05 / 0.20 rather than 0. If some
+  low supply holds query_ctx up, "needs supply" becomes a threshold with a number.
+
 ## 2026-08-08 ~08:20Z — TWO DECISIVE RESULTS: the block is in the WEIGHTS, and it is NOT weight decay
 
 ### Phase M — what carries the block? Answer: not the optimizer, not the LR. 28 runs, all terminal.
