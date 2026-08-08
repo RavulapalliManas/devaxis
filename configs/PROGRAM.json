@@ -119,5 +119,18 @@
   "queue": "<WORK>/kgenmx/queue.jsonl",
   "run_dir": "runs/kgen",
   "question": "Does any of this hold beyond K=4? Fresh baselines at K=2 and K=8, prerequisite for a K-generality maintenance sweep."
+ },
+ {
+  "name": "zero",
+  "builder": [
+   "tools/make_zero.py",
+   "--out",
+   "<WORK>/zeromx",
+   "--cores",
+   "0-31"
+  ],
+  "queue": "<WORK>/zeromx/queue.jsonl",
+  "run_dir": "runs/zero",
+  "question": "Is ZERO special? Replace the deprivation window's p=0 with 0.001/0.005/0.01 then rescue. p=0 gives 0/7; if tiny-nonzero rescues, irreversibility is about CONTINUITY not quantity."
  }
 ]
