@@ -42,8 +42,10 @@ import json
 import os
 import subprocess
 
-DEP = 3000
-RESCUE = 30000
+DEP = 3000        # default; --dep overrides.  dep=10000 is the MATCHED-GAP arm: at K=2/tau=10k
+RESCUE = 30000    # never-formed models fail 2/8 while formed-collapsed (dep=3k) recover 7/8 —
+                  # if formed models ALSO survive a 10k gap, prior mastery protects plasticity
+                  # at a gap that forecloses some never-formed runs.  Pre-registered 2026-08-09.
 
 
 def busy_cores():
@@ -66,6 +68,7 @@ def main():
     ap.add_argument("--runs", default="runs/kgen")
     ap.add_argument("--out", required=True)
     ap.add_argument("--cores", default="0-31")
+    ap.add_argument("--dep", type=int, default=DEP)
     a = ap.parse_args()
     os.makedirs(a.out, exist_ok=True)
     lo, hi = (int(x) for x in a.cores.split("-"))
@@ -90,15 +93,17 @@ def main():
             print(f"[skip] {rid}: q@{T}={q_at.get(T)} < 0.75 — not a formed fork point")
             continue
         pman = json.load(open(mp))
+        dep = a.dep
+        name = f"k2post_{rid}" if dep == DEP else f"k2postd{dep}_{rid}"
         child = dict(pman)
         child.pop("condition", None)
-        child.update(run_id=f"k2post_{rid}", parent_run_id=rid, fork_step=T,
+        child.update(run_id=name, parent_run_id=rid, fork_step=T,
                      resume_ckpt=os.path.abspath(os.path.join(a.runs, "ckpt", rid,
                                                               f"step{T}.pt")),
-                     p_schedule=f"0:1.0,{T}:0.0,{T + DEP}:1.0",
-                     steps=T + DEP + RESCUE, stop_at=2.0, ckpt_every=0,
-                     ckpt_at=[T + 500, T + 1000, T + 1500, T + 2000, T + 3000,
-                              T + 4000, T + 6000],
+                     p_schedule=f"0:1.0,{T}:0.0,{T + dep}:1.0",
+                     steps=T + dep + RESCUE, stop_at=2.0, ckpt_every=0,
+                     ckpt_at=sorted({T + 500, T + 1000, T + 2000, T + dep,
+                                     T + dep + 1000, T + dep + 3000}),
                      out_dir="runs/k2post",
                      data_streams=[dict(from_step=0, stream_id=rid)],
                      health_gate=dict(step=T + 2000, min_recap=0.5))
@@ -110,7 +115,7 @@ def main():
     with open(os.path.join(a.out, "queue.jsonl"), "w") as f:
         for q in queue:
             f.write(json.dumps(q) + "\n")
-    print(f"[k2post] {n} runs (deprive {DEP} then rescue {RESCUE} from terminal ckpt) -> {a.out}")
+    print(f"[k2post] {n} runs (deprive {a.dep} then rescue {RESCUE} from terminal ckpt) -> {a.out}")
 
 
 if __name__ == "__main__":
