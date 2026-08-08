@@ -28,6 +28,19 @@
   "question": "WHAT blocks the rescue? optimizer state vs LR scale vs weights."
  },
  {
+  "name": "wd0",
+  "builder": [
+   "tools/make_wd0.py",
+   "--out",
+   "<WORK>/wd0mx",
+   "--cores",
+   "0-31"
+  ],
+  "queue": "<WORK>/wd0mx/queue.jsonl",
+  "run_dir": "runs/wd0",
+  "question": "Is the 'critical period' just decoupled weight decay eroding an unsupervised sub-circuit? Decay multiplier (1-lr*wd)^tau tracks the observed emergence rates almost exactly."
+ },
+ {
   "name": "dd10",
   "builder": [
    "tools/make_dd10.py",
