@@ -1,5 +1,57 @@
 # devaxis ledger
 
+## 2026-08-08 ~08:20Z — TWO DECISIVE RESULTS: the block is in the WEIGHTS, and it is NOT weight decay
+
+### Phase M — what carries the block? Answer: not the optimizer, not the LR. 28 runs, all terminal.
+
+| rescue arm | n | emerged | final query_ctx |
+|---|---|---|---|
+| plain (replication) | 7 | **0/7** | 0.232-0.279 |
+| optreset (drop Adam moments) | 7 | **0/7** | 0.230-0.273 |
+| rewarm (restart the LR ramp) | 7 | **0/7** | 0.201-0.258 |
+| both | 7 | **0/7** | 0.225-0.252 |
+
+Declared before the data: optreset rescues => optimizer state; rewarm rescues => LR scale;
+NEITHER => the block is in the WEIGHTS. **Neither rescued.** Restoring the weights while
+discarding all optimizer state does nothing; restarting the warmup ramp does nothing; doing
+both does nothing. Whatever prevents the use circuit from forming is carried by the parameters
+themselves, not by the optimizer's memory or the step size.
+
+### Phase X — is it just decoupled weight decay? Answer: NO. 24 runs, all terminal.
+
+| arm (weight decay = 0 from the fork) | n | emerged | final query_ctx |
+|---|---|---|---|
+| noop | 8 | **7/8** | 0.508, 0.908, 0.930, 0.938, 0.949, 0.953, 0.957, 0.992 |
+| resc10k (tau = 10,000) | 8 | **0/8** | 0.215-0.277 |
+| resc20k (tau = 20,000) | 8 | **0/8** | 0.219-0.260 |
+
+With weight decay switched OFF, deprivation still forecloses completely: 0/8 at tau = 10,000
+and 0/8 at tau = 20,000, while the wd=0 control emerges 7/8 at exactly the parent emergence
+steps (7000, 8500, 8750, 9750, 10500, 15500, 31750). **The weight-decay explanation is dead.**
+The multiplier arithmetic that matched the dose-response so well (1.000/0.549/0.223/0.050/0.002
+vs rates 1.00/0.50/0.25/0.00/0.00) was a coincidence of scale, not the mechanism.
+
+### What this leaves
+
+The foreclosure is (a) real, (b) carried by the weights, (c) not produced by weight decay,
+(d) not produced by optimizer state or learning-rate scale, (e) dose-dependent with a monotone
+curve (p = 7.8e-05), (f) present at every pre-emergence age tested, and (g) accompanied by a
+perfectly intact read circuit (recap = 1.000 throughout).
+
+That is a substantive negative-space result: the model reaches a parameter configuration from
+which gradient descent on the use objective cannot escape, and it gets there simply by training
+without that objective for long enough. None of the three standard "it's an optimization
+artifact" explanations survives.
+
+STILL OPEN: phase P (post-emergence deprivation, 14 runs in flight) asks whether an
+ALREADY-FORMED circuit survives the same insult. That is the remaining test of whether this is
+a formation-specific vulnerability or general corrosion.
+
+Correction to my own alarm this morning: I briefly read wd0's one-second ALREADY_COMPLETE as a
+bug that had skipped the experiment. It had not — 24 run records existed; the phase had run in
+an earlier program iteration and the runner correctly recognised finished work. Verified before
+changing anything.
+
 ## 2026-08-08 ~03:30Z — INTERPRETATION, and the alternative explanation that may demolish it
 
 **What is established (measured, artifact-audited):**
