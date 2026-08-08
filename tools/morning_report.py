@@ -24,9 +24,12 @@ VERDICTS = """## Confirmed verdicts (hand-maintained, 2026-08-09 02:20 IST)
   Collapse latency +1,000-2,000 steps at BOTH loads. s5 = the one K=2 absorbing case.
 - **Matched different-futures at K=4 = both frozen, from existing data**: per-parent
   age+dose+stream-matched pairs (tau10k never-formed 0/20 vs postresc formed-collapsed 0/7).
-- **Gap-matched K=2 contrast (k2post10k, 10k gap)**: never-formed 8/8 reacquire vs
-  formed-collapsed 3/7 + s7 pending at report time — the Outcome-A dissociation; check the
-  k2post table below for s7's final row before quoting.
+- **Gap-matched K=2 contrast FINAL (k2post10k, 10k gap)**: never-formed 8/8 reacquire vs
+  formed-collapsed **4/8** (s7 recovered at 44,750 after ~25k rescued steps; s0/s3/s4/s5
+  frozen through 30k of rescue, recap 1.000). Fisher 2s p ~ 0.077 — Outcome-A DIRECTION,
+  not significant at n=8. Confirmatory expansion queued (phase k2exp: 16 fresh parents,
+  both arms each -> n=24 paired, exact McNemar pre-registered). Gap dose-response on the
+  formed side: 3k gap -> 1/8 frozen, 10k gap -> 4/8 frozen.
 - **K=8**: read saturates at step 250, use emerged once at 48,750 (s5); other 7 rerunning
   after the 19:39Z restart incident (deterministic re-derivation, science intact).
 """
