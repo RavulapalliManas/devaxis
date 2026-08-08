@@ -1,5 +1,47 @@
 # devaxis ledger
 
+## 2026-08-08 ~17:05Z - FINAL bracketing table; recovery-from-chance CONFIRMED per-run
+
+### Maintenance dose - all 21 bracketing runs terminal
+
+| p | n | collapsed (final < 0.30) | median final | dip floor |
+|---|---|---|---|---|
+| 0.01 | 7 | **6/7** | ~0.25 | - |
+| 0.02 | 7 | **2/7** | 0.746 | 0.209 |
+| 0.03 | 7 | **0/7** | 0.840 | 0.242 |
+| 0.04 | 7 | 0/7 | 0.881 | 0.350 |
+| 0.05 | 7 | 0/7 | ~0.94 | 0.412 |
+| 0.20 | 7 | 0/7 | ~0.98 | 0.705 |
+
+Both quantities are monotone in p. Collapse risk vanishes at **p = 0.03**: below it the circuit
+can die outright; at and above it every run dips and returns. The maintenance requirement is a
+risk gradient, not a cliff, and 3% is where the risk reaches zero on this task.
+
+### CONFIRMED per-run: recovery from chance under CONTINUOUS thin supply
+
+| run | min after fork | at step | final |
+|---|---|---|---|
+| thr003_q4_s5 | **0.242** | 11,750 | **0.791** |
+| thr003_q4_s6 | **0.275** | 34,750 | **0.805** |
+
+Against this: supply restored to p = 1.0 after an INTERRUPTION recovered nothing, 0 of ~21 runs
+(postresc 0/7, rescue10k 0/7, mech 0/7 across four arms). At p = 0.02 two runs that reached
+0.209 and 0.211 stayed dead (0.229, 0.248), so recovery is not automatic below the threshold.
+
+**A model on 3% supervision can climb back from chance; a model on 100% supervision cannot, if
+its supply ever stopped.** Continuity appears to matter independently of quantity.
+
+Phase Z tests whether ZERO is the special value: replace the window's p = 0 with 0.001 / 0.005 /
+0.01, then rescue. p = 0 gives 0/7. If a thousandth of the supervision restores rescuability,
+irreversibility is about supervision STOPPING rather than how little there is.
+
+### Counts and health
+242 runs terminal across 10 experiments {'factorial': 49, 'branch': 21, 'tau': 24, 'window': 22, 'dd10': 11, 'mech': 28, 'postem': 14, 'maint': 28, 'early': 24, 'thresh': 21}; kgen 16 launched, K=2 arm at
+chance 0.50 as expected for step 0. Units active, one dispatcher per queue. The queue-vs-results
+diff flagged 8 K=8 runs as not-yet-started: expected transient, since K = 8 changes the sequence
+length and needs a fresh compile (new shape bucket), so those write their first record minutes
+after launch. Noted, not acted on; re-checked next tick.
+
 ## 2026-08-08 ~16:25Z — INTERIM: the maintenance threshold is GRADED, not a cliff
 
 Bracketing between the measured 1% collapse and 5% hold. 21 runs, **0 terminal — interim**.
