@@ -65,5 +65,18 @@
   "queue": "<WORK>/postemmx/queue.jsonl",
   "run_dir": "runs/postem",
   "question": "Does an ALREADY-FORMED use circuit survive the same deprivation that prevents formation? The asymmetry test the window sweep never populated."
+ },
+ {
+  "name": "maint",
+  "builder": [
+   "tools/make_maint.py",
+   "--out",
+   "<WORK>/maintmx",
+   "--cores",
+   "0-31"
+  ],
+  "queue": "<WORK>/maintmx/queue.jsonl",
+  "run_dir": "runs/maint",
+  "question": "Is the post-emergence DECAY weight decay? And what is the minimum supply that maintains a formed circuit?"
  }
 ]
