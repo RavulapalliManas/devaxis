@@ -1,5 +1,42 @@
 # devaxis ledger
 
+## 2026-08-08 ~23:05Z — THE DOSE-RESPONSE LANDED. Monotone, p = 7.8e-05.
+
+Deprivation length tau, applied at the same pre-emergence state (step 4,000), same schedule
+shape, same parents, same everything else:
+
+| tau | emerged | n | rate | final query_ctx per run (chance 0.25) |
+|---|---|---|---|---|
+| 0 (no-op) | 7 | 7 | **1.00** | all emerged, median delay 5,750 |
+| 2,000 | 4 | 8 | **0.50** | 0.25, 0.28, 0.48, 0.50, 0.94, 0.98, 1.00, 1.00 |
+| 5,000 | 2 | 8 | **0.25** | 0.25, 0.47, 0.48, 0.48, 0.51, 0.52, 0.93, 0.99 |
+| 10,000 | 0 | 7 | **0.00** | 0.23–0.29 (all at chance) |
+| 20,000 | 0 | 8 | **0.00** | 0.22–0.26 (all at chance) |
+
+**Cochran-Armitage trend test: z = -3.783, one-tailed p = 7.8e-05, n = 38 runs.**
+
+Two features beyond the headline:
+1. **The intermediate shelf.** At tau = 2,000 and 5,000 several runs sit at query_ctx ~0.47-0.52
+   — the half-solved plateau — while at tau >= 10,000 nothing leaves chance at all. Short
+   deprivation degrades gracefully; long deprivation forecloses the intermediate state too.
+2. **The confound that could have explained it does not.** Longer tau leaves fewer use-supplied
+   steps inside the budget (46,000 at tau=20,000 vs 64,000 at tau=2,000). But the slowest
+   control ever needed 27,750, so EVERY arm had at least 1.7x the opportunity the slowest
+   control required. "Not enough time" cannot produce this curve.
+
+Together with the paired branch result (7/7 reversals, p = 0.0078) and the artifact battery
+(schedule verified, gradient reopens, recap = 1.000, zero learning across 42k steps), the
+phenomenon is established on this task: **there is a deprivation dose beyond which the use
+circuit does not form, while the read circuit remains perfect.**
+
+Still open, and running: WHERE the window sits in developmental time (phase W, fixed insult at
+5 ages — the test of whether this is a critical PERIOD or merely dose-dependent damage), and
+WHAT carries the block (phase M: optimizer state vs LR scale vs weights).
+
+Scope, unchanged: one task family, one model size (4.9M), one architecture, 7-8 seeds per arm,
+one fork state so far. Cross-session consistency: clocks-law reports tau=2,000 7/10 vs
+tau=6,000 0/10 on different hardware — same shape, independently.
+
 ## 2026-08-08 ~20:55Z — DEEP PROGRAM QUEUED (open-ended, extensible without restarts)
 
 Health verified: 4 units active, exactly 1 dispatcher, 26/26 tests green, factorial 49/49
