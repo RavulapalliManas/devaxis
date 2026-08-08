@@ -1,5 +1,44 @@
 # devaxis ledger
 
+## 2026-08-08 ~03:10Z — WINDOW SWEEP: my critical-PERIOD framing does NOT survive its own test
+
+Fixed insult (tau = 10,000) applied at five developmental ages, 22 runs, all terminal:
+
+| fork age | n | emerged | final query_ctx (chance 0.25) |
+|---|---|---|---|
+| 1,000 | 5 | **1/5** | 0.211, 0.236, 0.250, 0.254, **0.916** |
+| 2,000 | 5 | 0/5 | 0.240-0.275 |
+| 4,000 | 5 | 0/5 | 0.227-0.262 |
+| 8,000 | 5 | 0/5 | 0.221-0.262 |
+| 12,000 | 2 | 0/2 | 0.242, 0.252 |
+
+**1 of 22 emerged. Foreclosure at EVERY age tested.** My pre-registered predictions were:
+age-dependent = critical period; uniform = "damage, not a period". The data are uniform.
+**So the narrow-critical-period framing is not supported: within the pre-emergence phase,
+deprivation of this dose forecloses regardless of when it lands.** The honest description is
+dose-dependent foreclosure (the tau curve, p = 7.8e-05), not a window in developmental time.
+
+**AND the sweep has a gap I have to own.** The cell that would decide the developmental
+question — deprive a model that ALREADY HAS the circuit — was never populated. The parents in
+the 8,000 and 12,000 cells had not emerged at those steps (baseline median 9,750; the 12,000
+cell holds q4_s0, which never emerged, and q4_s1, which emerged at 15,500). Every window run
+deprived a pre-emergence model. The builder chose ages on a fixed grid instead of relative to
+each parent's own emergence step — my design error, not a run failure.
+
+**Queued as phase P (`make_postem.py`):** fork each emerged parent at the first checkpoint
+strictly AFTER its own emergence step, then apply the same two insults — permanent deprivation
+(does a formed circuit DECAY?) and deprive-then-rescue (if it decays, does it return?).
+Declared: persistence would give a genuine formation-vs-maintenance asymmetry against 0/22
+formation under the same insult; decay-without-recovery would retire the developmental framing
+in favour of plain supply-dependence. The second outcome would cost me a framing I like, which
+is why it is worth running.
+
+Also fixed: `pending()` treated an EMPTY queue as "everything finished" (returned []), so a
+build that silently produced nothing would have been recorded as a completed phase. It now
+returns None (= build failure).
+
+Mechanism phase M is running (28 runs, 4 arms x 7 parents, all still early and at chance).
+
 ## 2026-08-08 ~23:05Z — THE DOSE-RESPONSE LANDED. Monotone, p = 7.8e-05.
 
 Deprivation length tau, applied at the same pre-emergence state (step 4,000), same schedule
