@@ -1,5 +1,49 @@
 # devaxis ledger
 
+## 2026-08-08 ~03:30Z — INTERPRETATION, and the alternative explanation that may demolish it
+
+**What is established (measured, artifact-audited):**
+1. Two circuits with opposite robustness. The READ circuit (maintain K bindings across a
+   distractor gap) forms in ~500 steps and is essentially unkillable: recap = 1.000 even in
+   models deprived 20,000 steps and trained 46,000 more. The USE circuit (select the queried
+   binding) forms late (7,000-31,750 steps), stochastically, and only if its supervision is
+   present during the pre-emergence phase.
+2. Dose-response: emergence 7/7, 4/8, 2/8, 0/7, 0/8 for tau = 0/2k/5k/10k/20k
+   (Cochran-Armitage p = 7.8e-05). Opportunity confound excluded.
+3. Uniform across ages 1k-12k (1/22 emerged) -> NOT a bounded window; dose is what matters.
+4. Distribution of repetition (exact/paraphrase x spacing x order) changed NOTHING
+   (all p_holm = 1.0). Supply TIMING changed everything.
+
+**THE ALTERNATIVE EXPLANATION I NOW THINK IS MOST LIKELY — and it is mundane.**
+AdamW applies DECOUPLED weight decay: every parameter is multiplied by (1 - lr*wd) every step
+regardless of gradient. Here lr*wd = 3e-3 x 0.1 = 3e-4. During deprivation the recap tokens
+remain supervised, so read-circuit parameters keep receiving gradient and are held up (exactly
+why recap stays 1.000) — but parameters serving ONLY the answer site receive nothing and decay
+geometrically:
+
+    tau        (1 - 3e-4)^tau      observed emergence rate
+      0                 1.000                        1.00
+   2000                 0.549                        0.50
+   5000                 0.223                        0.25
+  10000                 0.050                        0.00
+  20000                 0.002                        0.00
+
+The dose-response tracks the decay multiplier almost exactly. If that is the mechanism, this is
+not a developmental critical period at all — it is weight decay erasing a sub-circuit that has
+no gradient to defend it, and "foreclosure" is erosion.
+
+**Queued AHEAD of everything else (phase X, `make_wd0.py`):** repeat the deprivation with
+wd = 0 from the fork onward — noop_wd0 control, tau = 10,000, tau = 20,000, all 8 parents.
+  * foreclosure DISAPPEARS at wd=0 -> mechanism is weight decay; retire the developmental
+    framing; the real (still useful) claim becomes "an unsupervised sub-circuit is erased at a
+    rate set by lr*wd", which predicts scaling in lr*wd*tau rather than in developmental state.
+  * foreclosure PERSISTS -> the most plausible mundane explanation is dead and the
+    developmental account survives its hardest test.
+  * partial -> decompose.
+
+Phase order is now window(done) -> mech(running) -> **wd0** -> dd10 -> postem. Nothing further
+should be built on the developmental reading until phase X reports.
+
 ## 2026-08-08 ~03:10Z — WINDOW SWEEP: my critical-PERIOD framing does NOT survive its own test
 
 Fixed insult (tau = 10,000) applied at five developmental ages, 22 runs, all terminal:
