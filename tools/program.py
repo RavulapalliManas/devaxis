@@ -9,12 +9,18 @@ PROGRAM.json is a list of phases:
     {"name": "mech", "builder": ["tools/make_mechanism.py", "--out", "<WORK>/mechmx"],
      "queue": "<WORK>/mechmx/queue.jsonl", "run_dir": "runs/mech"}
 
-Rules, all learned from failures today:
-  * waits for any other devaxis wave to finish before starting (one writer per core);
-  * builders skip busy cores themselves, so overlap is safe even if that check races;
-  * a phase that fails is recorded and the next one runs;
+Rules, all learned from failures today and tonight:
+  * NO global wait between phases (2026-08-09): topology now packs jobs dynamically onto free
+    cores with a launch-time lock + foreign-holder guard, so waves coexist safely.  The old
+    trainers==0 gate left ~25 cores idle for hours whenever one long phase had stragglers.
+  * phase OVERLAP: once every job of the current phase is in flight (nothing absent), the
+    phase is marked DRAINING and the next phase starts; DRAINING phases flip to OK when their
+    queue-vs-results diff is clean.
+  * a build failure is retried next cycle, not recorded as terminal — the common cause
+    (zero free cores at build time) heals itself as runs finish;
   * completion is judged by diffing the QUEUE against the RESULTS — a job that never starts
     leaves no JSON and would otherwise be invisible;
+  * the stall detector keys on progress_sig (eval steps advancing), never on terminal-count;
   * state is kept in PROGRAM_STATE.json so a restart resumes instead of re-running;
   * the morning report is regenerated after every phase, so there is always a current answer.
 """
@@ -156,6 +162,11 @@ def run_phase(ph):
             if proc.poll() is None:
                 proc.terminate()
             return dict(name=name, status="OK")
+        absent = [rid for rid in left
+                  if not os.path.exists(os.path.join(WORK, run_dir, f"{rid}.json"))]
+        if not absent and proc.poll() is None:
+            log(f"[{name}] all {len(left)} remaining jobs in flight — DRAINING, next phase may start")
+            return dict(name=name, status="DRAINING", queue=queue, run_dir=run_dir)
         sig = progress_sig(run_dir)
         if len(left) != last or sig != last_sig:
             if len(left) != last:
@@ -188,22 +199,31 @@ def main():
             time.sleep(300)
             continue
         st = state()
+        # reconcile DRAINING phases: flip to OK when their queue-vs-results diff is clean
+        for name, rec in list(st.items()):
+            if rec.get("status") == "DRAINING":
+                left = pending(rec["queue"], rec["run_dir"])
+                if left == []:
+                    log(f"[{name}] drained -> OK")
+                    st[name] = dict(name=name, status="OK")
+                    save_state(st)
+                    report()
         nxt = next((p for p in phases if st.get(p["name"], {}).get("status") not in
-                    ("OK", "ALREADY_COMPLETE")), None)
+                    ("OK", "ALREADY_COMPLETE", "DRAINING")), None)
         if nxt is None:
-            log("all phases complete; regenerating report and idling")
+            log("all phases complete or draining; regenerating report and idling")
             report()
             time.sleep(600)
             continue
-        while trainers() > 0 or other_orchestrator_active():
-            log(f"waiting: {trainers()} trainers, overnight active="
-                f"{other_orchestrator_active()}")
-            time.sleep(POLL)
-            if os.path.exists(os.path.join(WORK, "STOP_NEW")):
-                log("STOP_NEW while waiting — exiting")
-                return
+        if os.path.exists(os.path.join(WORK, "STOP_NEW")):
+            log("STOP_NEW — exiting")
+            return
         res = run_phase(nxt)
         log(f"[{nxt['name']}] -> {res['status']}")
+        if res["status"] == "BUILD_FAILED":
+            time.sleep(POLL)          # retryable (e.g. zero free cores at build time)
+            continue
+        st = state()
         st[nxt["name"]] = res
         save_state(st)
         report()

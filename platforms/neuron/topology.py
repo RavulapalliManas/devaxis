@@ -1,20 +1,24 @@
-"""Wave dispatcher: independent single-core training processes, one NeuronCore per LANE.
+"""Wave dispatcher: a FIFO of jobs packed dynamically onto free NeuronCores.
 
-queue.jsonl lines: {"manifest": "path.json", "core": 7, "overrides": ["run_id=x", ...]}
-Jobs sharing a core form a lane and run SEQUENTIALLY (never concurrently on one core).
-Each job runs `python -m training.train --backend neuron` under NEURON_RT_VISIBLE_CORES=<core>.
-A crashed job is retried in place up to --max-retries (it resumes from its own run state).
-Job state is read from the filesystem (run JSON done/failed flags), never from queue position.
+queue.jsonl lines: {"manifest": "path.json", "core": 7, "overrides": [...]}.  The "core" field
+is a legacy hint and is IGNORED: jobs are launched in queue order onto whichever core in
+--cores is free, unheld, and unlocked.  This replaced static lanes on 2026-08-09 — static
+build-time core assignment left cores idle whenever a lane's core was held by another wave,
+and raced when two builders computed the same free list seconds apart (8 jobs died at init).
+
+Collision safety, two layers:
+  * flock on locks/core<N>.lock, held for the child's lifetime — arbitrates between LIVE
+    dispatchers racing for a core in the same second;
+  * a foreign-holder scan of /proc (trainers outside this dispatcher) — covers processes whose
+    dispatcher died and released its locks.
+
+A crashed job is retried (any core) up to --max-retries, resuming from its own run state.
+Job state is read from the filesystem (run JSON done flag), never from queue position.
 A STOP_NEW file (deadline guard) stops new launches; running jobs finish or get the guard's
-SIGTERM.
-
-LAUNCH-TIME CORE GUARD (2026-08-09): a core held by a FOREIGN trainer (another wave's process)
-is not launched onto — the lane waits and retries each poll.  Build-time free-core checks are
-not enough: two builders run seconds apart see the same free list and assign overlapping lanes,
-and the collision losers die at device init leaving no run record (8 jobs lost this way when
-devaxis-tomo and devaxis-k2post10k launched together)."""
+SIGTERM."""
 from __future__ import annotations
 import argparse
+import fcntl
 import json
 import os
 import subprocess
@@ -38,7 +42,10 @@ def job_state(man_path: str, overrides: list[str]) -> str:
     p = run_paths(man_path, overrides)
     if not os.path.exists(p):
         return "pending"
-    rec = json.load(open(p))
+    try:
+        rec = json.load(open(p))
+    except Exception:
+        return "partial"          # mid-write; treat as in progress
     if rec.get("done"):
         return "done"
     if rec.get("failed"):
@@ -46,8 +53,12 @@ def job_state(man_path: str, overrides: list[str]) -> str:
     return "partial"
 
 
-def foreign_holder(core: int, own_pids: set[int]) -> bool:
-    """True if a trainer OUTSIDE this dispatcher currently holds the core."""
+def foreign_scan(own_pids: set[int]) -> tuple[set[int], set[str]]:
+    """(cores held, manifest paths being trained) by trainers OUTSIDE this dispatcher.
+    The manifest set prevents the two-writer hazard: after a dispatcher dies and is revived,
+    its orphaned trainers keep running — the revived dispatcher must never relaunch a job
+    whose manifest a live foreign trainer is already working on."""
+    held, manifests = set(), set()
     out = subprocess.run(["pgrep", "-f", "training[.]train"],
                          capture_output=True, text=True).stdout.split()
     for pid in out:
@@ -56,44 +67,62 @@ def foreign_holder(core: int, own_pids: set[int]) -> bool:
                 continue
             env = open(f"/proc/{pid}/environ", "rb").read().decode(errors="ignore").split("\0")
             for x in env:
-                if x.startswith("NEURON_RT_VISIBLE_CORES=") and int(x.split("=", 1)[1]) == core:
-                    return True
+                if x.startswith("NEURON_RT_VISIBLE_CORES="):
+                    held.add(int(x.split("=", 1)[1]))
+            cmd = open(f"/proc/{pid}/cmdline", "rb").read().decode(errors="ignore").split("\0")
+            for k, tok in enumerate(cmd):
+                if tok == "--manifest" and k + 1 < len(cmd):
+                    manifests.add(os.path.abspath(cmd[k + 1]))
         except Exception:
             continue
-    return False
+    return held, manifests
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--queue", required=True)
+    ap.add_argument("--cores", default="0-31")
     ap.add_argument("--max-retries", type=int, default=2)
     ap.add_argument("--poll", type=int, default=30)
     ap.add_argument("--stagger", type=float, default=8.0,
-                    help="seconds between lane starts; prevents the compile storm that "
-                         "SIGHUP'd neuronx-cc when 32 processes compiled simultaneously")
+                    help="seconds between launches; prevents the compile storm that SIGHUP'd "
+                         "neuronx-cc when 32 processes compiled simultaneously")
     a = ap.parse_args()
 
+    lo, hi = (int(x) for x in a.cores.split("-"))
+    pool = list(range(lo, hi + 1))
     jobs = [json.loads(l) for l in open(a.queue) if l.strip()]
-    lanes: dict[int, list[int]] = {}
-    for i, j in enumerate(jobs):
-        lanes.setdefault(j["core"], []).append(i)
 
     os.makedirs("logs", exist_ok=True)
+    os.makedirs("locks", exist_ok=True)
     retries = {i: 0 for i in range(len(jobs))}
-    active: dict[int, tuple[int, subprocess.Popen]] = {}
-    waiting_note: set[int] = set()
+    perm_failed: set[int] = set()
+    # core -> (job_idx, proc, lock_fd)
+    active: dict[int, tuple[int, subprocess.Popen, int]] = {}
 
-    def next_pending(core) -> int | None:
-        while lanes[core]:
-            i = lanes[core][0]
-            if job_state(jobs[i]["manifest"], jobs[i].get("overrides", [])) == "done":
-                print(f"[topology] job {i} already done, skipping", flush=True)
-                lanes[core].pop(0)
+    def pend(foreign_manifests: set[str]) -> list[int]:
+        busy = {i for i, _, _ in active.values()}
+        out = []
+        for i, j in enumerate(jobs):
+            if i in busy or i in perm_failed:
                 continue
-            return i
-        return None
+            if os.path.abspath(j["manifest"]) in foreign_manifests:
+                continue          # a live foreign trainer already owns this job
+            if job_state(j["manifest"], j.get("overrides", [])) == "done":
+                continue
+            out.append(i)
+        return out
 
-    def launch(core, i):
+    def try_lock(core: int) -> int | None:
+        fd = os.open(os.path.join("locks", f"core{core}.lock"), os.O_CREAT | os.O_RDWR)
+        try:
+            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            return fd
+        except OSError:
+            os.close(fd)
+            return None
+
+    def launch(core: int, i: int, fd: int):
         j = jobs[i]
         env = dict(os.environ, NEURON_RT_VISIBLE_CORES=str(core))
         cmd = [sys.executable, "-m", "training.train", "--manifest", j["manifest"],
@@ -102,54 +131,49 @@ def main():
             cmd += ["--set", kv]
         log = open(f"logs/job{i}_core{core}.log", "a")
         p = subprocess.Popen(cmd, env=env, stdout=log, stderr=subprocess.STDOUT)
-        active[core] = (i, p)
-        waiting_note.discard(core)
+        active[core] = (i, p, fd)
         print(f"[topology] core {core}: launched job {i} (pid {p.pid})", flush=True)
 
     while True:
-        # launch pass: any lane with work, no active process, and an unheld core
+        own = {p.pid for _, p, _ in active.values()}
+        held, foreign_man = foreign_scan(own)
         if not os.path.exists("STOP_NEW"):
-            own = {p.pid for _, p in active.values()}
-            for core in sorted(lanes):
-                if core in active:
+            waiting = pend(foreign_man)
+            for core in pool:
+                if not waiting:
+                    break
+                if core in active or core in held:
                     continue
-                i = next_pending(core)
-                if i is None:
+                fd = try_lock(core)
+                if fd is None:
                     continue
-                if foreign_holder(core, own):
-                    if core not in waiting_note:
-                        print(f"[topology] core {core}: held by a foreign trainer — waiting",
-                              flush=True)
-                        waiting_note.add(core)
-                    continue
-                launch(core, i)
+                launch(core, waiting.pop(0), fd)
                 time.sleep(a.stagger)
 
         if not active:
             if os.path.exists("STOP_NEW"):
                 print("[topology] STOP_NEW and nothing active — exiting", flush=True)
                 return
-            if all(next_pending(c) is None for c in lanes):
+            if not pend(foreign_man):
                 break
         time.sleep(a.poll)
 
-        # reap pass
         for core in list(active):
-            i, p = active[core]
+            i, p, fd = active[core]
             if p.poll() is None:
                 continue
             del active[core]
+            os.close(fd)          # releases the flock
             if p.returncode == 0:
                 print(f"[topology] core {core}: job {i} DONE", flush=True)
-                lanes[core].pop(0)
             elif retries[i] < a.max_retries and not os.path.exists("STOP_NEW"):
                 retries[i] += 1
                 print(f"[topology] core {core}: job {i} crashed rc={p.returncode}, "
-                      f"retry {retries[i]}", flush=True)
+                      f"retry {retries[i]} (any core)", flush=True)
             else:
                 print(f"[topology] core {core}: job {i} FAILED permanently", flush=True)
-                lanes[core].pop(0)
-    print("[topology] all lanes drained", flush=True)
+                perm_failed.add(i)
+    print("[topology] all jobs drained", flush=True)
 
 
 if __name__ == "__main__":
