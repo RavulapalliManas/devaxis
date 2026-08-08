@@ -1,5 +1,34 @@
 # devaxis ledger
 
+## 2026-08-08 ~16:25Z — INTERIM: the maintenance threshold is GRADED, not a cliff
+
+Bracketing between the measured 1% collapse and 5% hold. 21 runs, **0 terminal — interim**.
+
+| p | final query_ctx per run | min after fork |
+|---|---|---|
+| 0.01 (phase N) | 6/7 collapsed | - |
+| 0.02 | 0.26, 0.27, 0.43, 0.80, 0.84, 0.87, 0.88 | 0.21-0.67 |
+| 0.03 | 0.53, 0.62, 0.71, 0.73, 0.82, 0.87, 0.91 | 0.24-0.68 |
+| 0.04 | 0.56, 0.60, 0.86, 0.89, 0.94, 0.94, 0.95 | 0.35-0.76 |
+| 0.05 (phase N) | 7/7 held 0.88-0.99 | - |
+
+Collapse count falls 6/7 -> 2/7 -> 0/7 -> 0/7 -> 0/7 across p = 0.01 to 0.05, and the dip floor
+rises monotonically (0.21 -> 0.24 -> 0.35). So the transition is graded: a risk gradient with
+collapse disappearing near p = 0.03, not a sharp threshold. No number is being claimed until
+the runs terminate — phase N showed a 5% run dipping to 0.41 before recovering to 0.99, so
+these values can still move.
+
+**A question this raises that matters more than the threshold.** At p = 0.02 the minimum reached
+is 0.21 (chance) while some runs end at 0.88. If a circuit that fell TO CHANCE climbed back
+under continued low supply, that contradicts the irreversibility established by the rescue
+experiments (where restoring p = 1.0 after full deprivation never recovered, 7/7 and 7/7). The
+aggregate does not say whether the run that hit 0.21 is the one that ended at 0.88. NEXT TICK
+MUST PAIR THEM PER RUN. If recovery from chance is real under low continuous supply but
+impossible under restored full supply after a gap, that is a sharper and stranger result than
+anything measured so far, and it would need its own experiment.
+
+Queue-vs-results diff clean: 21 queued, 21 started, 0 never started.
+
 ## 2026-08-08 ~14:40Z — BOTH CRITICAL-PERIOD RESCUES FAIL; and a maintenance THRESHOLD appears
 
 Manas pushed back on the supply-dependence framing and argued the data show a critical period.
