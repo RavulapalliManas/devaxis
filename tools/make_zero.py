@@ -59,7 +59,10 @@ def main():
             child.update(run_id=f"zero{str(pv).replace('.','p')}_{rid}", parent_run_id=rid,
                          fork_step=FORK, resume_ckpt=os.path.abspath(ck),
                          p_schedule=f"0:1.0,{FORK}:{pv},{FORK+TAU}:1.0",
-                         steps=BUDGET, stop_at=0.90, ckpt_every=0, ckpt_at=[],
+                         steps=BUDGET, stop_at=0.90, ckpt_every=0,
+                         # dense ckpts through the window + early rescue: the tau arms saved
+                         # none, which forecloses transplantation/rewinding on them forever
+                         ckpt_at=[6000, 8000, 10000, 12000, 14000, 16000, 20000],
                          out_dir="runs/zero",
                          data_streams=[dict(from_step=0, stream_id=rid)],
                          health_gate=dict(step=FORK+2000, min_recap=0.5))
