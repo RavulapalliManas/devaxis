@@ -78,5 +78,18 @@
   "queue": "<WORK>/maintmx/queue.jsonl",
   "run_dir": "runs/maint",
   "question": "Is the post-emergence DECAY weight decay? And what is the minimum supply that maintains a formed circuit?"
+ },
+ {
+  "name": "early",
+  "builder": [
+   "tools/make_early.py",
+   "--out",
+   "<WORK>/earlymx",
+   "--cores",
+   "0-31"
+  ],
+  "queue": "<WORK>/earlymx/queue.jsonl",
+  "run_dir": "runs/early",
+  "question": "Does the deprivation window have a LOWER edge? 8 parents x ages 1k/2k/3k, tau=10k. A falling emergence rate with age would give the critical-period reading its missing structure."
  }
 ]
