@@ -77,6 +77,8 @@ def pending(queue, run_dir):
         jobs = [json.loads(l) for l in open(queue) if l.strip()]
     except Exception:
         return None
+    if not jobs:
+        return None          # an EMPTY queue is a build failure, not "everything finished"
     for j in jobs:
         try:
             rid = json.load(open(j["manifest"]))["run_id"]
