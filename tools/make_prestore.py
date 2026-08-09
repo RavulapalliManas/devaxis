@@ -84,7 +84,14 @@ def main():
     ap.add_argument("--runs", default="runs/kgen")
     ap.add_argument("--out", required=True)
     ap.add_argument("--cores", default="0-31")
+    ap.add_argument("--dep", type=int, default=DEP,
+                    help="deprivation length before restore; dep=2500 against the default "
+                         "10000 at matched rates is the SEVERITY x RATE interaction that "
+                         "settles the cross-lab discrepancy from our own data")
+    ap.add_argument("--rates", default=",".join(str(x) for x in RATES))
+    ap.add_argument("--tag", default="pr")
     a = ap.parse_args()
+    rates = [float(x) for x in a.rates.split(",")]
     os.makedirs(a.out, exist_ok=True)
     lo, hi = (int(x) for x in a.cores.split("-"))
     cores = [c for c in range(lo, hi + 1) if c not in busy_cores()] or list(range(lo, hi + 1))
@@ -105,16 +112,16 @@ def main():
             skipped.append(rid + "(not formed at ckpt)")
             continue
         pman = json.load(open(mp))
-        for pv in RATES:
+        for pv in rates:
             child = dict(pman)
             child.pop("condition", None)
-            child.update(run_id=f"pr{str(pv).replace('.', 'p')}_{rid}", parent_run_id=rid,
+            child.update(run_id=f"{a.tag}{str(pv).replace('.', 'p')}_{rid}", parent_run_id=rid,
                          fork_step=T,
                          resume_ckpt=os.path.abspath(os.path.join(a.runs, "ckpt", rid,
                                                                   f"step{T}.pt")),
-                         p_schedule=f"0:1.0,{T}:0.0,{T + DEP}:{pv}",
-                         steps=T + DEP + RESCUE, stop_at=2.0, ckpt_every=0,
-                         ckpt_at=[T + DEP, T + DEP + 2000, T + DEP + 10000],
+                         p_schedule=f"0:1.0,{T}:0.0,{T + a.dep}:{pv}",
+                         steps=T + a.dep + RESCUE, stop_at=2.0, ckpt_every=0,
+                         ckpt_at=[T + a.dep, T + a.dep + 2000],
                          out_dir="runs/prestore",
                          data_streams=[dict(from_step=0, stream_id=rid)],
                          health_gate=dict(step=T + 2000, min_recap=0.5))
@@ -128,7 +135,7 @@ def main():
             f.write(json.dumps(q) + "\n")
     if skipped:
         print(f"[prestore] skipped: {skipped}")
-    print(f"[prestore] {n} runs ({len(RATES)} rates x parents) -> {a.out}")
+    print(f"[prestore] {n} runs (dep={a.dep}, rates={rates}) -> {a.out}")
 
 
 if __name__ == "__main__":
