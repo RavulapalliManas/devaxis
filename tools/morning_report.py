@@ -41,9 +41,23 @@ VERDICTS = """## Confirmed verdicts (hand-maintained, 2026-08-09 02:20 IST)
   steps of deprivation, matching the tau dose-response knee (2k->4/8, 5k->2/8, 10k->0/20).
   Caveats: delta=1000 is below the instrument floor everywhere (+0.012 even at age 0);
   delta=250 recorded no logit; the 2k/4k inversion is within seed noise (n=8/cell).
-- **Continuity near-final**: cont003 1 emerged + 3 censored ending at 0.477-0.496 (climbing
-  at budget) vs ALL burst arms 0/20 terminal above 0.4 at the same dose. KM/log-rank +
-  model comparison owed when the last 2 runs finish.
+- **CONTINUITY FINAL (32/32)**: at IDENTICAL dose 300, cont003 (continuous 3%) = 1/8 emerged
+  + 3 censored climbing at 0.477-0.496; micro/bstart/bend (bursts, gaps 970/9,700/9,700) =
+  0/24, every final q <= 0.271. Registered emergence contrast is underpowered (1 event);
+  post-hoc rank test on final q, cont003 vs pooled bursts: Mann-Whitney U=143.5/192, p ~ 0.039.
+  Reading: 300 p-steps under-doses formation in ANY shape; only the continuous arm shows
+  partial formation. Max-gap does NOT explain it (micro's 970-gap behaves like 9,700-gap
+  bursts). Formal D vs D+G vs D+G+B model comparison owed.
+- **PAIRED FORECLOSURE CLOCK (confirmatory)**: chi(age 0) > mean chi(age >= 8k) in 7/8
+  parents. REGISTERED sign test two-sided p = 0.070; post-hoc Wilcoxon signed-rank (uses
+  magnitudes: declines +0.015 to +0.504, one -0.012) p = 0.016. The one non-declining parent
+  (s3) had chi(0) = +0.0005 — plasticity not yet pulse-visible at age 4000, consistent with
+  slow emergers.
+- **ZERO FINAL (24/24)**: tiny-but-nonzero window supervision does NOT reliably preserve
+  rescuability at K=4: p=0.001 -> 2/8, p=0.005 -> 1/8, p=0.01 -> 0/8 (pooled 3/24 vs p=0's
+  0/20: Fisher p = 0.24, ns). The apparent inverted ordering is noise-level at n=8.
+- **K=3 FINAL: 8/8 emerged at 6,500-13,000** — the emergence ladder is now four-point:
+  K=2 ~3.1k median, K=3 ~8k, K=4 ~12k, K=8 >= 48,750 (2/8 by 120k).
 """
 
 
