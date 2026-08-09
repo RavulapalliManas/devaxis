@@ -42,6 +42,30 @@ VERDICTS = """## Confirmed verdicts (hand-maintained, 2026-08-09 02:20 IST)
 - **K=2 maintenance threshold scales with load (k2maint FINAL)**: held at p=0.005 -> 1/8,
   p=0.01 -> 4/8, p=0.03 -> 7/8, vs K=4's 1/7 held at p=0.01 — maintenance is ~2-3x cheaper
   at half the load, same dip-then-recover motif.
+- **REVIVAL HAS A RATE THRESHOLD, and my pre-registered "low rate wins" branch is REFUTED
+  (phase prestore, K=2, formed circuit, total 10k gap, 60k rescue horizon, n=8/arm).**
+  Recovery by restore rate: **p_rescue = 0.01 -> 0/8, 0.02 -> 0/8, 0.05 -> 0/8, 0.20 -> 4/8,
+  1.00 -> 1/8.** The registered contrast (0.02 vs 1.00) is null, Fisher p = 1.00 — the
+  hypothesis that dripping supervision back beats restoring it is WRONG: every rate at or
+  below 0.05 recovered nothing in 60,000 steps. What survives is a THRESHOLD: pooled low
+  rates 0/24 vs 0.20's 4/8, Fisher p = 0.0019. The apparent drop from 0.20 (4/8) to 1.00
+  (1/8) is a POST-HOC contrast and is NOT supported (Fisher p = 0.28) — interesting, not
+  claimed, and the reason the Cochran-Armitage trend reads ns (z = +0.66, p = 0.51): that
+  test looks for monotone trend and cannot see a threshold or a peak.
+  Practical reading, stated conservatively: to revive a collapsed capability you need a
+  substantial restore rate (>= ~0.2 here); a maintenance-sized trickle does not bring it
+  back, even though a trickle of the same size WOULD have prevented the loss (see the
+  two-axis supply map — retention needs ~1-3%, revival needs ~20%, an order of magnitude
+  more). Prevention is roughly 10x cheaper than cure.
+- **REPAIR: 0 for 4. No intervention we tried reopens a foreclosed model.**
+  symmetry-breaking and norm-matched random perturbation at the early chi-dead state
+  (sb12, n=8/arm: all |chi| <= 0.011) and at the LATE state where duplicate units actually
+  exist (sb24, n=5/arm so far: noop -0.006, symb -0.001, randp -0.009, symfar -0.004), all
+  function-preserving by the declared gate. Together with the transplant result (only the
+  FULL weight set restores plasticity) and the refuted cloned-manifold timing, the honest
+  statement is: foreclosure is a whole-network configuration that we could localize to
+  nothing smaller, repair with nothing weaker, and escape with no perturbation of the
+  magnitudes tested.
 - **MECHANISM: foreclosure is a WHOLE-NETWORK configuration, not a damaged module
   (transplant battery, 80 runs, all terminal).** chi (delta=4k pulse minus control) after
   swapping layer groups between a plastic (step 4,000) and a foreclosed (step 24,000)
