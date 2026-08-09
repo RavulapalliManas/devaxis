@@ -36,9 +36,13 @@ import os
 import subprocess
 import sys
 
-SEEDS = range(8, 24)
-DEP, RESCUE = 10000, 30000
+DEP, RESCUE = 10000, 30000        # --rescue overrides; tranche 2 uses 60000 to horizon-match
 TAU_FORK, TAU, TAU_BUDGET = 1000, 10000, 70000
+# TRANCHE-2 PROTOCOL NOTE (2026-08-09): in tranche 1 the formed arm's rescue window (30k) was
+# half the never-formed arm's (~59k) while observed recoveries ran to 36k rescued steps — a
+# censoring bias AGAINST the formed arm.  The corrected primary analysis is KM/log-rank on the
+# rescued-steps clock (handles unequal follow-up); tranche 2 (--lo 24 --hi 40 --rescue 60000)
+# horizon-matches by construction.
 
 BASE = dict(model=dict(d=256, nl=6, nh=8), bs=128, lr=3e-3, wd=0.1, warmup=500,
             p_schedule="1.0", steps=120000, eval_every=250, logit_every=1000, stop_at=0.90,
@@ -65,14 +69,18 @@ def main():
     ap.add_argument("--runs", default="runs/kgen")
     ap.add_argument("--out", required=True)
     ap.add_argument("--cores", default="0-31")
+    ap.add_argument("--lo", type=int, default=8)
+    ap.add_argument("--hi", type=int, default=24)
+    ap.add_argument("--rescue", type=int, default=RESCUE)
     a = ap.parse_args()
+    seeds = range(a.lo, a.hi)
     os.makedirs(a.out, exist_ok=True)
     lo, hi = (int(x) for x in a.cores.split("-"))
     cores = [c for c in range(lo, hi + 1) if c not in busy_cores()] or list(range(lo, hi + 1))
     queue, n = [], 0
 
     if a.stage == "base":
-        for s in SEEDS:
+        for s in seeds:
             man = dict(BASE, run_id=f"k2_s{s}", init_seed=s, task=dict(K=2, D=32),
                        out_dir="runs/kgen")
             p = os.path.join(a.out, f"k2_s{s}.manifest.json")
@@ -82,7 +90,7 @@ def main():
             n += 1
     else:
         missing = []
-        for s in SEEDS:
+        for s in seeds:
             rid = f"k2_s{s}"
             rj = os.path.join(a.runs, f"{rid}.json")
             r = json.load(open(rj)) if os.path.exists(rj) else None
@@ -111,7 +119,7 @@ def main():
                       resume_ckpt=os.path.abspath(os.path.join(a.runs, "ckpt", rid,
                                                                f"step{T}.pt")),
                       p_schedule=f"0:1.0,{T}:0.0,{T + DEP}:1.0",
-                      steps=T + DEP + RESCUE, stop_at=2.0, ckpt_every=0,
+                      steps=T + DEP + a.rescue, stop_at=2.0, ckpt_every=0,
                       ckpt_at=sorted({T + 500, T + 1000, T + 2000, T + DEP,
                                       T + DEP + 1000, T + DEP + 3000}),
                       out_dir="runs/k2exp",
