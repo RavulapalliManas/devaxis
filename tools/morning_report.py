@@ -42,6 +42,12 @@ VERDICTS = """## Confirmed verdicts (hand-maintained, 2026-08-09 02:20 IST)
 - **K=2 maintenance threshold scales with load (k2maint FINAL)**: held at p=0.005 -> 1/8,
   p=0.01 -> 4/8, p=0.03 -> 7/8, vs K=4's 1/7 held at p=0.01 — maintenance is ~2-3x cheaper
   at half the load, same dip-then-recover motif.
+- **SAVINGS SIGN IS INVERTED vs induction (analysis/savings_k2.py — the h100 X5 cross-check)**:
+  paired re-form-vs-de-novo on K=2 binding: 3/18 re-formed runs show positive savings, median
+  savings -0.44 (re-forming is SLOWER than learning from scratch), and 22/40 never re-form in
+  30-60k rescued steps = 10-19x the de-novo median. Induction heads (h100 X5): +92.9% savings,
+  12/12 faster. Behavioral erasure hides retained structure for induction; for binding-use the
+  collapse is genuine damage. Cross-lab check (their code, our task) = their X9, in flight.
 - **K=8 FINAL: 2/8 emerged** (48,750 and 72,000); the other six ran the FULL 120k budget at
   chance (q 0.105-0.141) with recap = 1.000 throughout. Read saturates at step 250 in all 8.
   Within-budget emergence probability by load: K=2 8/8, K=4 7/8, K=8 2/8.
