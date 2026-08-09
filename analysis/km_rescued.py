@@ -82,7 +82,7 @@ def logrank(a, b):
 
 def main():
     A, B = [], []
-    for s in range(24):
+    for s in range(40):
         par = f"k2_s{s}"
         nv = find(f"k2tau10000_{par}", ["runs/kgen_tau", "runs/k2exp"])
         fm = find(f"k2postd10000_{par}", ["runs/k2post", "runs/k2exp"])
