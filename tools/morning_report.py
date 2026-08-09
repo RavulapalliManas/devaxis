@@ -24,12 +24,15 @@ VERDICTS = """## Confirmed verdicts (hand-maintained, 2026-08-09 02:20 IST)
   Collapse latency +1,000-2,000 steps at BOTH loads. s5 = the one K=2 absorbing case.
 - **Matched different-futures at K=4 = both frozen, from existing data**: per-parent
   age+dose+stream-matched pairs (tau10k never-formed 0/20 vs postresc formed-collapsed 0/7).
-- **Gap-matched K=2 contrast FINAL (k2post10k, 10k gap)**: never-formed 8/8 reacquire vs
-  formed-collapsed **4/8** (s7 recovered at 44,750 after ~25k rescued steps; s0/s3/s4/s5
-  frozen through 30k of rescue, recap 1.000). Fisher 2s p ~ 0.077 — Outcome-A DIRECTION,
-  not significant at n=8. Confirmatory expansion queued (phase k2exp: 16 fresh parents,
-  both arms each -> n=24 paired, exact McNemar pre-registered). Gap dose-response on the
-  formed side: 3k gap -> 1/8 frozen, 10k gap -> 4/8 frozen.
+- **CONFIRMATORY n=24 (analysis/mcnemar_k2.py): never-formed 20/24 reacquire vs
+  formed-collapsed 12/24** at the identical 10k gap; discordant 11 vs 3; **exact McNemar
+  two-sided p = 0.057** (the registered primary). Direction stable at every n; significance
+  just above 0.05. The exploratory 8/8 never-formed was the lucky tail — 4/16 fresh
+  never-formed runs froze; 3 parents show the reverse dissociation. Gap dose-response on the
+  formed side stands: 3k gap -> 1/8 frozen, 10k gap -> 12/24 frozen.
+- **K=2 maintenance threshold scales with load (k2maint FINAL)**: held at p=0.005 -> 1/8,
+  p=0.01 -> 4/8, p=0.03 -> 7/8, vs K=4's 1/7 held at p=0.01 — maintenance is ~2-3x cheaper
+  at half the load, same dip-then-recover motif.
 - **K=8 FINAL: 2/8 emerged** (48,750 and 72,000); the other six ran the FULL 120k budget at
   chance (q 0.105-0.141) with recap = 1.000 throughout. Read saturates at step 250 in all 8.
   Within-budget emergence probability by load: K=2 8/8, K=4 7/8, K=8 2/8.
