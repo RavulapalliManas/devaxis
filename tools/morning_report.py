@@ -24,13 +24,15 @@ VERDICTS = """## Confirmed verdicts (hand-maintained, 2026-08-09 02:20 IST)
   Collapse latency +1,000-2,000 steps at BOTH loads. s5 = the one K=2 absorbing case.
 - **Matched different-futures at K=4 = both frozen, from existing data**: per-parent
   age+dose+stream-matched pairs (tau10k never-formed 0/20 vs postresc formed-collapsed 0/7).
-- **K=2 DIFFERENT-FUTURES, CORRECTED PRIMARY (analysis/km_rescued.py): NOT SUPPORTED at
-  n=24.** KM/log-rank on the rescued clock — the analysis that handles the 30k-vs-59k
-  follow-up asymmetry — gives **log-rank chi2 = 1.53, p = 0.216** (never-formed median
-  17,000 rescued steps; formed median not reached). The registered-but-biased McNemar read
-  p = 0.057 (20/24 vs 12/24, discordant 11v3); the event-count gap was substantially a
-  censoring artifact of the formed arm's shorter window. Decisive test = tranche 2
-  (n=40, horizon-matched at rescue=60k): baselines 16/16 emerged, arms running.
+- **SAME BEHAVIOR, DIFFERENT FUTURES — CONFIRMED at n=40, horizon-matched
+  (analysis/km_rescued.py + analysis/mcnemar_k2.py).** Identical 10k gap, follow-up 60k in
+  BOTH arms: never-formed reacquire **31/40** (KM median 12,500 rescued steps);
+  formed-then-collapsed **18/40** (median not reached by 60k). **Corrected primary:
+  log-rank chi2 = 5.96, p = 0.0146. Registered McNemar: discordant 17 vs 4, p = 0.0072.**
+  Look history, in full: n=8 exploratory p~0.077 -> n=24 (formed arm under-followed: McNemar
+  0.057, corrected KM 0.216) -> n=40 horizon-matched 0.0072/0.0146. Two models at chance
+  with recap 1.000 on identical bytes under identical future supervision have opposite
+  futures — and it is the FORMED-THEN-COLLAPSED state that is absorbing.
 - **Foreclosure clock, delta=8000 column**: age-0 positive control +0.513±0.301; the
   delta=4000 holdout (s3) registers at +0.735. Paired decline 7/8 at BOTH deltas but with
   DIFFERENT dissenting parents (s3 at 4k, s1 at 8k) — the registered sign test is pinned at
