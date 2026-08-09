@@ -24,15 +24,18 @@ VERDICTS = """## Confirmed verdicts (hand-maintained, 2026-08-09 02:20 IST)
   Collapse latency +1,000-2,000 steps at BOTH loads. s5 = the one K=2 absorbing case.
 - **Matched different-futures at K=4 = both frozen, from existing data**: per-parent
   age+dose+stream-matched pairs (tau10k never-formed 0/20 vs postresc formed-collapsed 0/7).
-- **CONFIRMATORY n=24 (analysis/mcnemar_k2.py): never-formed 20/24 reacquire vs
-  formed-collapsed 12/24** at the identical 10k gap; discordant 11 vs 3; **exact McNemar
-  two-sided p = 0.057** (the registered primary). Direction stable at every n; significance
-  just above 0.05. The exploratory 8/8 never-formed was the lucky tail — 4/16 fresh
-  never-formed runs froze; 3 parents show the reverse dissociation. CAVEAT (caught in
-  design review): the formed arm's rescue window (30k) is half the never-formed arm's
-  (~59k) while recoveries ran as late as 36k — censoring bias AGAINST the formed arm;
-  corrected analysis = KM/log-rank on the rescued clock (owed); tranche 2 (n->40, seeds
-  24-39) horizon-matches at rescue=60k and is queued. Gap dose-response on the
+- **K=2 DIFFERENT-FUTURES, CORRECTED PRIMARY (analysis/km_rescued.py): NOT SUPPORTED at
+  n=24.** KM/log-rank on the rescued clock — the analysis that handles the 30k-vs-59k
+  follow-up asymmetry — gives **log-rank chi2 = 1.53, p = 0.216** (never-formed median
+  17,000 rescued steps; formed median not reached). The registered-but-biased McNemar read
+  p = 0.057 (20/24 vs 12/24, discordant 11v3); the event-count gap was substantially a
+  censoring artifact of the formed arm's shorter window. Decisive test = tranche 2
+  (n=40, horizon-matched at rescue=60k): baselines 16/16 emerged, arms running.
+- **Foreclosure clock, delta=8000 column**: age-0 positive control +0.513±0.301; the
+  delta=4000 holdout (s3) registers at +0.735. Paired decline 7/8 at BOTH deltas but with
+  DIFFERENT dissenting parents (s3 at 4k, s1 at 8k) — the registered sign test is pinned at
+  p = 0.070 by n=8 granularity; magnitude-aware tests are strongly positive. Optional fix:
+  more K=4 parents. Gap dose-response on the
   formed side stands: 3k gap -> 1/8 frozen, 10k gap -> 12/24 frozen.
 - **K=2 maintenance threshold scales with load (k2maint FINAL)**: held at p=0.005 -> 1/8,
   p=0.01 -> 4/8, p=0.03 -> 7/8, vs K=4's 1/7 held at p=0.01 — maintenance is ~2-3x cheaper
