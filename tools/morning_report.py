@@ -65,6 +65,16 @@ VERDICTS = """## Confirmed verdicts (hand-maintained, 2026-08-09 02:20 IST)
   0/20: Fisher p = 0.24, ns). The apparent inverted ordering is noise-level at n=8.
 - **K=3 FINAL: 8/8 emerged at 6,500-13,000** — the emergence ladder is now four-point:
   K=2 ~3.1k median, K=3 ~8k, K=4 ~12k, K=8 >= 48,750 (2/8 by 120k).
+- **THE tau_c(K) PHASE BOUNDARY (k3tau FINAL, fork@3000)**: K=3 tau=2k -> 8/8 emerged
+  (delayed), 5k -> 7/8, **10k -> 0/8** (all flat at chance through 70k; vs K=2's 8/8 at the
+  same tau: Fisher p ~ 1.6e-4). Combined: **tau_c(2) > 10k, tau_c(3) in (5k, 10k],
+  tau_c(4) ~ 2-5k — the foreclosure boundary is monotone in load.** One K=3 tau=2k run
+  crossed the criterion at 24,250 then slipped back to 0.648 by budget — emergence is not
+  always stable; counted as emerged per the pre-registered first-crossing rule, flagged.
+- **K=6 DROPPED ON PLATFORM GROUNDS**: neuronx-cc dies deterministically compiling the K=6
+  shape (fast SIGHUP even as a solo compile with stagger 300 — the compile-storm explanation
+  is ruled out). The ladder is K in {2, 3, 4, 8}. This is a compiler limitation, not a
+  scientific result about K=6.
 """
 
 
