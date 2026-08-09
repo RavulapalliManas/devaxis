@@ -149,6 +149,11 @@ def main():
     ap.add_argument("--traj-runs", default="runs/tomo_traj")
     ap.add_argument("--out", required=True)
     ap.add_argument("--cores", default="0-31")
+    ap.add_argument("--src-step", type=int, default=F_STEP,
+                    help="deprived-trajectory step to operate on: 24000 = the LATE "
+                         "duplicated state; 12000 = dep_age 8000, where chi is already "
+                         "dead but dup_frac is still 0.0000 (unit_collapse.py) — the "
+                         "state that actually matters for foreclosure")
     ap.add_argument("--report-only", action="store_true",
                     help="print the duplicate-unit precondition and exit without building")
     a = ap.parse_args()
@@ -174,23 +179,23 @@ def main():
     cores = [c for c in range(lo, hi + 1) if c not in busy_cores()] or list(range(lo, hi + 1))
     queue, n = [], 0
     for si, rid in enumerate(PARENTS):
-        src = os.path.join(a.traj_runs, "ckpt", f"tomotraj_{rid}", f"step{F_STEP}.pt")
+        src = os.path.join(a.traj_runs, "ckpt", f"tomotraj_{rid}", f"step{a.src_step}.pt")
         mp = os.path.join(a.factorial, f"{rid}.manifest.json")
         if not (os.path.exists(src) and os.path.exists(mp)):
             print(f"[skip] {rid}")
             continue
         pman = json.load(open(mp))
         for arm in ("noop", "symb", "randp", "symfar"):
-            ck = os.path.join(a.out, "ckpts", f"{arm}_{rid}.pt")
+            ck = os.path.join(a.out, "ckpts", f"{arm}_{a.src_step}_{rid}.pt")
             side = make(src, arm, seed=1000 + si, out_path=ck)
             print(f"[sb] {arm}_{rid}: pair_cos {side['pair_cos_summary']}")
             for pa, pv in (("pulse", "1.0"), ("ctrl", "0.0")):
                 child = dict(pman)
                 child.pop("condition", None)
                 child.pop("health_gate", None)
-                child.update(run_id=f"sb_{arm}_{pa}_{rid}", parent_run_id=rid,
-                             fork_step=F_STEP, resume_ckpt=os.path.abspath(ck),
-                             p_schedule=f"0:{pv}", steps=F_STEP + DELTA_PULSE, stop_at=2.0,
+                child.update(run_id=f"sb{a.src_step}_{arm}_{pa}_{rid}", parent_run_id=rid,
+                             fork_step=a.src_step, resume_ckpt=os.path.abspath(ck),
+                             p_schedule=f"0:{pv}", steps=a.src_step + DELTA_PULSE, stop_at=2.0,
                              ckpt_every=0, ckpt_at=[], out_dir="runs/symbreak",
                              data_streams=[dict(from_step=0, stream_id=rid)])
                 p = os.path.join(a.out, f"{child['run_id']}.manifest.json")
