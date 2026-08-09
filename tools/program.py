@@ -92,6 +92,24 @@ def progress_sig(run_dir):
     return tot
 
 
+def free_cores(lo=0, hi=31):
+    """Cores held by NO trainer.  A phase whose jobs cannot start because every core is held
+    by another phase's runs is BLOCKED, not stalled — the launch-time core guard in topology.py
+    is deliberately refusing to co-schedule.  Counting that as a stall (as it did to sb24 on
+    2026-08-10) tears down a healthy dispatcher every STALL_MIN and re-queues it for nothing."""
+    held = set()
+    for pid in subprocess.run(["pgrep", "-f", "training[.]train"],
+                              capture_output=True, text=True).stdout.split():
+        try:
+            env = open(f"/proc/{pid}/environ", "rb").read().decode(errors="ignore").split("\0")
+            for x in env:
+                if x.startswith("NEURON_RT_VISIBLE_CORES="):
+                    held.add(int(x.split("=", 1)[1]))
+        except Exception:
+            pass
+    return [c for c in range(lo, hi + 1) if c not in held]
+
+
 def pending(queue, run_dir):
     """Jobs in the queue with no terminal run record — the honest 'what is left'."""
     left = []
@@ -151,6 +169,7 @@ def run_phase(ph):
                              "--queue", queue], cwd=WORK, stdout=logf,
                             stderr=subprocess.STDOUT)
     last, last_sig, changed, revived = None, None, time.time(), 0
+    last_blocked = None
     while True:
         if os.path.exists(os.path.join(WORK, "STOP_NEW")):
             log(f"[{name}] STOP_NEW — stopping")
@@ -179,6 +198,12 @@ def run_phase(ph):
                                      os.path.join(DEVAXIS, "platforms/neuron/topology.py"),
                                      "--queue", queue], cwd=WORK, stdout=logf,
                                     stderr=subprocess.STDOUT)
+            changed = time.time()
+        elif not free_cores():
+            # every core held by another phase: blocked, not stalled — hold the clock
+            if last_blocked is None or time.time() - last_blocked > 900:
+                log(f"[{name}] all 32 cores held by other phases — BLOCKED, waiting (not a stall)")
+                last_blocked = time.time()
             changed = time.time()
         elif time.time() - changed > STALL_MIN * 60:
             log(f"[{name}] STALLED {STALL_MIN} min — abandoning, {len(left)} unfinished")
