@@ -61,12 +61,19 @@ VERDICTS = """## Confirmed verdicts (hand-maintained, 2026-08-09 02:20 IST)
   the same span, so early rank loss is not deprivation-specific either. Unit duplication is a
   downstream signature of foreclosure, not its mechanism. Symmetry-breaking batteries now run
   at BOTH the late duplicated state and the early chi-dead state (dup_frac 0.0000).
-- **SAVINGS SIGN IS INVERTED vs induction (analysis/savings_k2.py — the h100 X5 cross-check)**:
-  paired re-form-vs-de-novo on K=2 binding: 3/18 re-formed runs show positive savings, median
-  savings -0.44 (re-forming is SLOWER than learning from scratch), and 22/40 never re-form in
-  30-60k rescued steps = 10-19x the de-novo median. Induction heads (h100 X5): +92.9% savings,
-  12/12 faster. Behavioral erasure hides retained structure for induction; for binding-use the
-  collapse is genuine damage. Cross-lab check (their code, our task) = their X9, in flight.
+- **SAVINGS after a TOTAL interruption are negative (analysis/savings_k2.py).** Paired
+  re-form-vs-de-novo on K=2 binding, p_during = 0 then full rescue: 3/18 re-formed runs show
+  positive savings, median -0.44 (re-forming is SLOWER than from scratch), and 22/40 never
+  re-form in 30-60k rescued steps = 10-19x the de-novo median.
+  **CORRECTION (2026-08-10), scope of the earlier "inverted vs induction" framing:** the
+  cross-lab exchange established that `p_after` named DIFFERENT variables in the two
+  codebases — h100-clocks' p_after is supply held DURING the interruption (their rescue is
+  always p=1.0), ours is supply during RESCUE after a total interruption. Their +92.9%
+  savings therefore describes a circuit that was MAINTAINED through the gap; ours describes
+  one that was fully collapsed. Both are correct and they are not in conflict; the earlier
+  "binding = damage, induction = retained structure" contrast compared different experiments
+  and is withdrawn as stated. What survives: after a TOTAL interruption, binding-use recovery
+  is slower than de novo. See analysis/supply_map.py for the two-axis map that separates them.
 - **K=8 FINAL: 2/8 emerged** (48,750 and 72,000); the other six ran the FULL 120k budget at
   chance (q 0.105-0.141) with recap = 1.000 throughout. Read saturates at step 250 in all 8.
   Within-budget emergence probability by load: K=2 8/8, K=4 7/8, K=8 2/8.

@@ -89,9 +89,14 @@ def main():
                          "10000 at matched rates is the SEVERITY x RATE interaction that "
                          "settles the cross-lab discrepancy from our own data")
     ap.add_argument("--rates", default=",".join(str(x) for x in RATES))
+    ap.add_argument("--during", default="0.0",
+                    help="supply held DURING the gap (h100-clocks' p_after axis). "
+                         "--during 0.01 --rates 1.0 is a direct replication of their "
+                         "X9 cell in this codebase.")
     ap.add_argument("--tag", default="pr")
     a = ap.parse_args()
     rates = [float(x) for x in a.rates.split(",")]
+    durings = [float(x) for x in a.during.split(",")]
     os.makedirs(a.out, exist_ok=True)
     lo, hi = (int(x) for x in a.cores.split("-"))
     cores = [c for c in range(lo, hi + 1) if c not in busy_cores()] or list(range(lo, hi + 1))
@@ -112,14 +117,15 @@ def main():
             skipped.append(rid + "(not formed at ckpt)")
             continue
         pman = json.load(open(mp))
-        for pv in rates:
+        for dv in durings:
+         for pv in rates:
             child = dict(pman)
             child.pop("condition", None)
-            child.update(run_id=f"{a.tag}{str(pv).replace('.', 'p')}_{rid}", parent_run_id=rid,
+            child.update(run_id=f"{a.tag}{str(dv).replace('.', 'p')}r{str(pv).replace('.', 'p')}_{rid}" if dv else f"{a.tag}{str(pv).replace('.', 'p')}_{rid}", parent_run_id=rid,
                          fork_step=T,
                          resume_ckpt=os.path.abspath(os.path.join(a.runs, "ckpt", rid,
                                                                   f"step{T}.pt")),
-                         p_schedule=f"0:1.0,{T}:0.0,{T + a.dep}:{pv}",
+                         p_schedule=f"0:1.0,{T}:{dv},{T + a.dep}:{pv}",
                          steps=T + a.dep + RESCUE, stop_at=2.0, ckpt_every=0,
                          ckpt_at=[T + a.dep, T + a.dep + 2000],
                          out_dir="runs/prestore",
