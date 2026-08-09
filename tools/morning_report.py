@@ -42,6 +42,25 @@ VERDICTS = """## Confirmed verdicts (hand-maintained, 2026-08-09 02:20 IST)
 - **K=2 maintenance threshold scales with load (k2maint FINAL)**: held at p=0.005 -> 1/8,
   p=0.01 -> 4/8, p=0.03 -> 7/8, vs K=4's 1/7 held at p=0.01 — maintenance is ~2-3x cheaper
   at half the load, same dip-then-recover motif.
+- **MECHANISM: foreclosure is a WHOLE-NETWORK configuration, not a damaged module
+  (transplant battery, 80 runs, all terminal).** chi (delta=4k pulse minus control) after
+  swapping layer groups between a plastic (step 4,000) and a foreclosed (step 24,000)
+  checkpoint of the same parent: **noop -0.005+-0.012, lower +0.066+-0.100, upper
+  +0.064+-0.107, full +0.301+-0.166, revup +0.185+-0.279** (n=8 each). Reading: neither half
+  restores plasticity (each ~22% of the full swap, and sub-additive); only the whole weight
+  set does. And foreclosed upper layers transplanted INTO a plastic model leave it plastic
+  (revup ~ the unperturbed plastic level) — foreclosure does not transfer as a module.
+  Performance-transfer guard passed: every arm's pre-pulse query stayed at chance
+  (0.211-0.314 vs criterion 0.625).
+- **CLONED-UNIT MANIFOLD: REFUTED AS THE CAUSE, BY ITS OWN TIMING (analysis/unit_collapse.py).**
+  Deprived checkpoints do collapse: at matched step 24,000, duplicate-pair fraction 0.407
+  (deprived) vs 0.008 (supervised), effective rank 23 vs 72 — deprivation-specific, not aging.
+  But the collapse arrives far too late: dup_frac is **0.0000 flat until dep_age 15,000**
+  (16k 0.003, 18k 0.204, 20k 0.407) while chi is already dead by dep_age ~8,000. Effective
+  rank falls 150->81 over the chi window, but the SUPERVISED control falls 150->108 across
+  the same span, so early rank loss is not deprivation-specific either. Unit duplication is a
+  downstream signature of foreclosure, not its mechanism. Symmetry-breaking batteries now run
+  at BOTH the late duplicated state and the early chi-dead state (dup_frac 0.0000).
 - **SAVINGS SIGN IS INVERTED vs induction (analysis/savings_k2.py — the h100 X5 cross-check)**:
   paired re-form-vs-de-novo on K=2 binding: 3/18 re-formed runs show positive savings, median
   savings -0.44 (re-forming is SLOWER than learning from scratch), and 22/40 never re-form in
