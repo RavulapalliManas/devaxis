@@ -30,8 +30,20 @@ VERDICTS = """## Confirmed verdicts (hand-maintained, 2026-08-09 02:20 IST)
   not significant at n=8. Confirmatory expansion queued (phase k2exp: 16 fresh parents,
   both arms each -> n=24 paired, exact McNemar pre-registered). Gap dose-response on the
   formed side: 3k gap -> 1/8 frozen, 10k gap -> 4/8 frozen.
-- **K=8**: read saturates at step 250, use emerged once at 48,750 (s5); other 7 rerunning
-  after the 19:39Z restart incident (deterministic re-derivation, science intact).
+- **K=8 FINAL: 2/8 emerged** (48,750 and 72,000); the other six ran the FULL 120k budget at
+  chance (q 0.105-0.141) with recap = 1.000 throughout. Read saturates at step 250 in all 8.
+  Within-budget emergence probability by load: K=2 8/8, K=4 7/8, K=8 2/8.
+- **THE FORECLOSURE CLOCK (tomography, analysis/chi_matrix.py)**: chi(t, delta=4000) on the
+  logit channel decays ~30x across deprivation age — +0.164 at age 0 (the positive control:
+  parent state, known plastic) -> +0.051 at 2k -> +0.087 at 4k -> +0.022 at 6k -> ~+0.006
+  from 8k on, FLAT thereafter — while query accuracy sits at chance in pulse and control
+  alike and recap stays 1.000. Pre-behavioral plasticity loss, localized to the first ~2-8k
+  steps of deprivation, matching the tau dose-response knee (2k->4/8, 5k->2/8, 10k->0/20).
+  Caveats: delta=1000 is below the instrument floor everywhere (+0.012 even at age 0);
+  delta=250 recorded no logit; the 2k/4k inversion is within seed noise (n=8/cell).
+- **Continuity near-final**: cont003 1 emerged + 3 censored ending at 0.477-0.496 (climbing
+  at budget) vs ALL burst arms 0/20 terminal above 0.4 at the same dose. KM/log-rank +
+  model comparison owed when the last 2 runs finish.
 """
 
 
