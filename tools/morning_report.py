@@ -34,10 +34,13 @@ VERDICTS = """## Confirmed verdicts (hand-maintained, 2026-08-09 02:20 IST)
   with recap 1.000 on identical bytes under identical future supervision have opposite
   futures — and it is the FORMED-THEN-COLLAPSED state that is absorbing.
 - **Foreclosure clock, delta=8000 column**: age-0 positive control +0.513±0.301; the
-  delta=4000 holdout (s3) registers at +0.735. Paired decline 7/8 at BOTH deltas but with
-  DIFFERENT dissenting parents (s3 at 4k, s1 at 8k) — the registered sign test is pinned at
-  p = 0.070 by n=8 granularity; magnitude-aware tests are strongly positive. Optional fix:
-  more K=4 parents. Gap dose-response on the
+  delta=4000 holdout (s3) registers at +0.735.
+  **CONFIRMED AT THE DECLARED n = 16 (analysis/chi_paired.py): the paired decline is positive
+  in 15/16 parents, two-sided exact sign p = 0.0005**, clearing the pre-declared >= 13/16 bar
+  on the pre-declared PRIMARY probe (delta = 8000); per-parent declines +0.0025 to +0.758,
+  one dissenter (s1, -0.021). Secondary probe (delta = 4000): 14/16, p = 0.0042. The earlier
+  7/8 (p = 0.070) was a sample-size ceiling, not a weak effect — at n = 8 no sign test can
+  reach significance with even one dissenter. Gap dose-response on the
   formed side stands: 3k gap -> 1/8 frozen, 10k gap -> 12/24 frozen.
 - **K=2 maintenance threshold scales with load (k2maint FINAL)**: held at p=0.005 -> 1/8,
   p=0.01 -> 4/8, p=0.03 -> 7/8, vs K=4's 1/7 held at p=0.01 — maintenance is ~2-3x cheaper
