@@ -42,6 +42,29 @@ VERDICTS = """## Confirmed verdicts (hand-maintained, 2026-08-09 02:20 IST)
 - **K=2 maintenance threshold scales with load (k2maint FINAL)**: held at p=0.005 -> 1/8,
   p=0.01 -> 4/8, p=0.03 -> 7/8, vs K=4's 1/7 held at p=0.01 — maintenance is ~2-3x cheaper
   at half the load, same dip-then-recover motif.
+- **THE TRICKLE RESULT — a 0.5% trace of supervision during an interruption preserves
+  RECOVERABILITY while preserving nothing observable (phase x9rep, K=2, tau_dep = 10,000,
+  full rescue in every arm, n=8/arm).** Hold p at 0.005 / 0.01 / 0.02 through the gap instead
+  of 0: recovery on full restore is **8/8, 8/8, 8/8** versus **18/40 after a total gap**
+  (each arm Fisher p = 0.005; pooled 24/24 vs 18/40, **p = 0.000002**).
+  THE CHECK THAT MAKES IT A RESULT: those circuits genuinely collapsed first. At p = 0.005
+  all 8 fell to query 0.426-0.477 — at or below the 0.5 chance level — and were still at
+  0.49-0.59 when rescue began, with recap 1.000 throughout. So at the moment supervision
+  returns, the trickle and no-trickle models are **behaviorally indistinguishable: both at
+  chance, both reading perfectly.** Their futures are not: 100% vs 45%.
+  This is the flagship dissociation in its sharpest form yet — the hidden variable is
+  ~50 supervised step-equivalents spread across 10,000 steps, invisible to every current
+  measurement, and it doubles the recovery rate.
+  **PREVENTION vs CURE:** 0.005 during the gap costs ~50 step-equivalents and gives 100%
+  recovery; 0.20 applied after a total gap costs ~12,000 step-equivalents and gives 50%
+  (Fisher p = 0.077 on 8/8 vs 4/8). **~240x less supervision, delivered during rather than
+  after, doubles the outcome.**
+  CROSS-CODEBASE REPLICATION: this reproduces h100-clocks' X9 (their 3/3 at p = 0.01 and
+  0.02) in an independent implementation, and extends the boundary down to 0.005.
+- **SEVERITY x RATE on the revival axis (phase sevrate):** at p_rescue = 0.20, a 2,500-step
+  gap recovers 8/8 versus 4/8 after a 10,000-step gap (Fisher p = 0.077); at p_rescue = 0.01
+  both are 0/8. Severity modulates revival ABOVE the rate threshold and is irrelevant below
+  it — the threshold is the primary variable.
 - **REVIVAL HAS A RATE THRESHOLD, and my pre-registered "low rate wins" branch is REFUTED
   (phase prestore, K=2, formed circuit, total 10k gap, 60k rescue horizon, n=8/arm).**
   Recovery by restore rate: **p_rescue = 0.01 -> 0/8, 0.02 -> 0/8, 0.05 -> 0/8, 0.20 -> 4/8,
