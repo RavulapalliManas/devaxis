@@ -63,8 +63,19 @@ def emerged_after(r, step):
 
 
 def held(r):
+    """Still above criterion at the last eval.
+
+    FIXED 2026-08-10: this hard-coded 0.75, which is the K=2 bar (chance 0.50).  Applied to
+    K=4 runs (chance 0.25, crit 0.625) it was STRICTER than the criterion used everywhere
+    else, and reported two K=4 maintenance runs as lost that had in fact held: p_during=0.01
+    read 0/7 instead of 1/7 and p_during=0.02 read 3/7 instead of 4/7.  Always derive crit
+    from the run's own chance level.
+    """
     ev = r.get("evals") or []
-    return bool(ev) and ev[-1].get("query_ctx", 0) >= 0.75
+    ch = r.get("chance_query_ctx")
+    if not ev or ch is None:
+        return False
+    return ev[-1].get("query_ctx", 0) >= ch + 0.5 * (1 - ch)
 
 
 def main():
